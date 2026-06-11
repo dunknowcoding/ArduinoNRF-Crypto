@@ -30,8 +30,9 @@ arduino-cli compile \
   /path/to/ArduinoNRF-Crypto/examples/CryptoSelfTest
 ```
 
-All seven examples (`Aes`, `Backends`, `CryptoSelfTest`, `EcdhKeyExchange`,
-`EcdsaSignVerify`, `RandomBytes`, `Sha256`) build clean at ~15% flash.
+All eight examples (`Aes`, `Backends`, `CryptoSelfTest`, `EcdhKeyExchange`,
+`EcdsaSignVerify`, `HmacSha256`, `RandomBytes`, `Sha256`) build clean at ~15%
+flash.
 
 ## 2. Flash over UF2 (normal path, no J-Link)
 
@@ -87,6 +88,19 @@ RESULT: OK
 ```
 
 This is the verified bring-up state of this library on real hardware.
+
+### One-shot board1 verify (J-Link + COM11)
+
+When board1 has a SEGGER J-Link on SWD and the data port on `COM11`:
+
+```powershell
+cd F:\path\to\ArduinoNRF-Crypto
+powershell -NoProfile -ExecutionPolicy Bypass -File vendor\tools\verify_board1.ps1
+```
+
+This compiles and flashes `CC310Smoke` (ArduinoNRF shim) and `CryptoSelfTest`,
+resets via J-Link, and fails unless each sketch prints `RESULT: OK`. Override
+the port with `$env:NIUS_BOARD1_COM='COM11'`.
 
 ## 4. Recover a non-enumerating board (J-Link)
 

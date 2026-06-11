@@ -37,6 +37,7 @@ ECDSA P-256 keygen/sign/verify. With binaries vendored it should print
 | `hmacSha256` | RFC 4231 #2 PASS |
 | `aes128Ctr` | NIST F.5.1 PASS |
 | `ecdsaP256GenerateKey/Sign/Verify` | all OK |
+| `ecdhP256ComputeShared` (A↔B) | shared secret match PASS |
 
 ## How to reproduce
 
