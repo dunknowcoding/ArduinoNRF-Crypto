@@ -1,0 +1,56 @@
+#######################################
+# Syntax coloring map for NiusCrypto
+#######################################
+
+#######################################
+# Datatypes / classes (KEYWORD1)
+#######################################
+
+NiusCrypto	KEYWORD1
+Crypto	KEYWORD1
+CryptoEngine	KEYWORD1
+CryptoBackend	KEYWORD1
+CryptoStatus	KEYWORD1
+CC310Backend	KEYWORD1
+OnChipBackend	KEYWORD1
+SoftSha256	KEYWORD1
+Prefer	KEYWORD1
+
+#######################################
+# Methods and functions (KEYWORD2)
+#######################################
+
+begin	KEYWORD2
+end	KEYWORD2
+started	KEYWORD2
+backendName	KEYWORD2
+isHardwareAccelerated	KEYWORD2
+backend	KEYWORD2
+random	KEYWORD2
+sha256	KEYWORD2
+hmacSha256	KEYWORD2
+aesCbcEncrypt	KEYWORD2
+aesCbcDecrypt	KEYWORD2
+aesCtr	KEYWORD2
+aesGcmEncrypt	KEYWORD2
+aesGcmDecrypt	KEYWORD2
+ecdsaGenerateKey	KEYWORD2
+ecdsaSign	KEYWORD2
+ecdsaVerify	KEYWORD2
+ecdhShared	KEYWORD2
+cryptoStatusName	KEYWORD2
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+
+Ok	LITERAL1
+HardwareMissing	LITERAL1
+NotStarted	LITERAL1
+BadParam	LITERAL1
+InternalError	LITERAL1
+Unsupported	LITERAL1
+AuthFailed	LITERAL1
+Auto	LITERAL1
+CC310	LITERAL1
+OnChip	LITERAL1
