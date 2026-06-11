@@ -57,6 +57,11 @@ class CryptoBackend {
     (void)in; (void)len; (void)out; return CryptoStatus::Unsupported;
   }
 
+  virtual CryptoStatus sha512(const uint8_t* in, size_t len,
+                              uint8_t out[kSha512Len]) {
+    (void)in; (void)len; (void)out; return CryptoStatus::Unsupported;
+  }
+
   virtual CryptoStatus hmacSha256(const uint8_t* key, size_t keyLen,
                                   const uint8_t* msg, size_t msgLen,
                                   uint8_t out[kSha256Len]) {

@@ -77,6 +77,30 @@ inline const CRYS_ECPKI_Domain_t* p256() {
   return CRYS_ECPKI_GetEcDomain(CRYS_ECPKI_DomainID_secp256r1);
 }
 
+CryptoStatus hashDigest(CRYS_HASH_OperationMode_t mode, size_t digestLen,
+                        size_t blockBytes,
+                        const uint8_t* in, size_t len, uint8_t* out) {
+  CRYS_HASHUserContext_t ctx;
+  if (CRYS_HASH_Init(&ctx, mode) != CRYS_OK)
+    return CryptoStatus::InternalError;
+  const size_t step =
+      blockBytes > 0 ? (kScratchBytes / blockBytes) * blockBytes : kScratchBytes;
+  uint8_t* bounce = scratchBytes();
+  size_t off = 0;
+  while (off < len) {
+    size_t chunk = len - off;
+    if (step > 0 && chunk > step) chunk = step;
+    memcpy(bounce, in + off, chunk);
+    if (CRYS_HASH_Update(&ctx, bounce, chunk) != CRYS_OK)
+      return CryptoStatus::InternalError;
+    off += chunk;
+  }
+  CRYS_HASH_Result_t res;
+  if (CRYS_HASH_Finish(&ctx, res) != CRYS_OK) return CryptoStatus::InternalError;
+  memcpy(out, res, digestLen);
+  return CryptoStatus::Ok;
+}
+
 // AES via the CC310 engine, bouncing (possibly flash) input through RAM.
 // CTR tolerates a non-block-multiple tail (zero-padded, extra output dropped);
 // CBC requires a block-multiple length and is rejected otherwise upstream.
@@ -166,26 +190,15 @@ CryptoStatus CC310Backend::randomBytes(uint8_t* buf, size_t len) {
 CryptoStatus CC310Backend::sha256(const uint8_t* in, size_t len,
                                   uint8_t out[kSha256Len]) {
   if (!started_) return CryptoStatus::NotStarted;
-  CRYS_HASHUserContext_t ctx;
-  if (CRYS_HASH_Init(&ctx, CRYS_HASH_SHA256_mode) != CRYS_OK)
-    return CryptoStatus::InternalError;
-  // Every Update but the last must be a multiple of the 64-byte block.
-  const size_t step = (kScratchBytes / CRYS_HASH_BLOCK_SIZE_IN_BYTES) *
-                      CRYS_HASH_BLOCK_SIZE_IN_BYTES;
-  uint8_t* bounce = scratchBytes();
-  size_t off = 0;
-  while (off < len) {
-    size_t chunk = len - off;
-    if (chunk > step) chunk = step;
-    memcpy(bounce, in + off, chunk);
-    if (CRYS_HASH_Update(&ctx, bounce, chunk) != CRYS_OK)
-      return CryptoStatus::InternalError;
-    off += chunk;
-  }
-  CRYS_HASH_Result_t res;
-  if (CRYS_HASH_Finish(&ctx, res) != CRYS_OK) return CryptoStatus::InternalError;
-  memcpy(out, res, kSha256Len);
-  return CryptoStatus::Ok;
+  return hashDigest(CRYS_HASH_SHA256_mode, kSha256Len,
+                    CRYS_HASH_BLOCK_SIZE_IN_BYTES, in, len, out);
+}
+
+CryptoStatus CC310Backend::sha512(const uint8_t* in, size_t len,
+                                  uint8_t out[kSha512Len]) {
+  if (!started_) return CryptoStatus::NotStarted;
+  return hashDigest(CRYS_HASH_SHA512_mode, kSha512Len,
+                    CRYS_HASH_SHA512_BLOCK_SIZE_IN_BYTES, in, len, out);
 }
 
 CryptoStatus CC310Backend::hmacSha256(const uint8_t* key, size_t keyLen,
@@ -370,6 +383,7 @@ bool CC310Backend::begin() { return false; }
 void CC310Backend::end() {}
 CryptoStatus CC310Backend::randomBytes(uint8_t*, size_t) { return CryptoStatus::HardwareMissing; }
 CryptoStatus CC310Backend::sha256(const uint8_t*, size_t, uint8_t*) { return CryptoStatus::HardwareMissing; }
+CryptoStatus CC310Backend::sha512(const uint8_t*, size_t, uint8_t*) { return CryptoStatus::HardwareMissing; }
 CryptoStatus CC310Backend::hmacSha256(const uint8_t*, size_t, const uint8_t*, size_t, uint8_t*) { return CryptoStatus::HardwareMissing; }
 CryptoStatus CC310Backend::aes128CbcEncrypt(const uint8_t*, const uint8_t*, const uint8_t*, uint8_t*, size_t) { return CryptoStatus::HardwareMissing; }
 CryptoStatus CC310Backend::aes128CbcDecrypt(const uint8_t*, const uint8_t*, const uint8_t*, uint8_t*, size_t) { return CryptoStatus::HardwareMissing; }

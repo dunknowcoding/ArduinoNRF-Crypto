@@ -75,6 +75,13 @@ CryptoStatus CryptoEngine::sha256(const uint8_t* in, size_t len,
   return backend_->sha256(in, len, out);
 }
 
+CryptoStatus CryptoEngine::sha512(const uint8_t* in, size_t len,
+                                  uint8_t out[kSha512Len]) {
+  NC_GUARD();
+  if (out == nullptr || (in == nullptr && len != 0)) return CryptoStatus::BadParam;
+  return backend_->sha512(in, len, out);
+}
+
 CryptoStatus CryptoEngine::hmacSha256(const uint8_t* key, size_t keyLen,
                                       const uint8_t* msg, size_t msgLen,
                                       uint8_t out[kSha256Len]) {

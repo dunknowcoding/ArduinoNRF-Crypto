@@ -9,7 +9,8 @@ also has a SEGGER J-Link on SWD for recovery.
 
 | Test | Result | Notes |
 |------|--------|-------|
-| `examples/CryptoSelfTest` | **10/10 PASS** | SHA-256, HMAC-SHA-256, AES-CBC/CTR, ECDSA, ECDH, TRNG, AES-GCM (KAT vectors) |
+| `examples/CryptoSelfTest` | **11/11 PASS** | incl. SHA-512("abc"); see summary line |
+| `SdCryptoSmoke` | **PASS** | `__nrf_app_start=0x26000`, SHA-256 + HMAC, `RESULT: OK` |
 | `CC310Smoke` (expanded shim) | **PASS** | TRNG, SHA-256, HMAC, AES-CTR, ECDSA keygen/sign/verify; `RESULT: OK` |
 | `backend: CC310` | **yes** | `hardware-accelerated: yes` on every run |
 | UF2 flash + USB serial | **PASS** | 1200-bps touch → NICENANO drive → copy `.uf2` → COM10/COM11 enumerate |
@@ -18,7 +19,7 @@ also has a SEGGER J-Link on SWD for recovery.
 Expected `CryptoSelfTest` tail:
 
 ```
-summary: 10 passed, 0 failed, 0 skipped
+summary: 11 passed, 0 failed, 0 skipped
 RESULT: OK
 ```
 

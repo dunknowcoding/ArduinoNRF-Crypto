@@ -29,6 +29,7 @@ void setup() {
 |-----------|-----------------|-------------------|
 | `random`  | **CC310 TRNG (hardware)**        | RNG peripheral (hardware) |
 | `sha256`  | **CC310 SHA-256 (hardware)**     | software (`SoftSha256`)   |
+| `sha512`  | **CC310 SHA-512 (hardware)**     | *Unsupported*             |
 | `hmacSha256` | **CC310 HMAC-SHA-256 (CRYS hardware)** | software (`SoftSha256`) |
 | `aesCbcEncrypt` | **CC310 AES-CBC (hardware)** | ECB peripheral (hardware) |
 | `aesCbcDecrypt` | **CC310 AES-CBC (hardware)** | *Unsupported*¹            |
@@ -154,6 +155,7 @@ bool        Crypto.isHardwareAccelerated();
 
 CryptoStatus Crypto.random(uint8_t* buf, size_t len);
 CryptoStatus Crypto.sha256(const uint8_t* in, size_t len, uint8_t out[32]);
+CryptoStatus Crypto.sha512(const uint8_t* in, size_t len, uint8_t out[64]);
 CryptoStatus Crypto.hmacSha256(const uint8_t* key, size_t keyLen,
                                const uint8_t* msg, size_t msgLen, uint8_t out[32]);
 
@@ -177,6 +179,7 @@ Public keys are 64 bytes (`X‖Y`), signatures 64 bytes (`R‖S`), private scala
 | Sketch | What it shows |
 |--------|---------------|
 | `CryptoSelfTest` | Known-answer tests for every primitive (main verification) |
+| `SdCryptoSmoke` | CC310 + SoftDevice layout smoke (`__nrf_app_start`, loop hash) |
 | `Backends` | Which backend you get and what each one supports |
 | `RandomBytes` | Streaming hardware random numbers |
 | `Sha256` | Hashing strings (interactive) |
@@ -188,6 +191,9 @@ Public keys are 64 bytes (`X‖Y`), signatures 64 bytes (`R‖S`), private scala
 ## Documentation
 
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — layers, backend selection, ABI notes
+- [docs/ROADMAP.md](docs/ROADMAP.md) — shipped vs planned CRYS capabilities
+- [docs/SOFTDEVICE_COEXISTENCE.md](docs/SOFTDEVICE_COEXISTENCE.md) — CC310 + S140 notes
+- [docs/MULTI_BOARD.md](docs/MULTI_BOARD.md) — CI matrix and HW status per board
 - [docs/VENDORING.md](docs/VENDORING.md) — vendoring scripts and Nordic binary sources
 - [docs/VALIDATION.md](docs/VALIDATION.md) — hardware verification log (ProMicro / board1)
 - [docs/BOARD_BRINGUP.md](docs/BOARD_BRINGUP.md) — compile, UF2 flash, J-Link recovery

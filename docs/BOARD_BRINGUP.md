@@ -30,7 +30,7 @@ arduino-cli compile \
   /path/to/ArduinoNRF-Crypto/examples/CryptoSelfTest
 ```
 
-All eight examples (`Aes`, `Backends`, `CryptoSelfTest`, `EcdhKeyExchange`,
+All nine examples (`Aes`, `Backends`, `CryptoSelfTest`, `EcdhKeyExchange`,
 `EcdsaSignVerify`, `HmacSha256`, `RandomBytes`, `Sha256`) build clean at ~15%
 flash.
 
@@ -83,7 +83,7 @@ backend: CC310   hardware-accelerated: yes
         sample: 8917003F44410FE4338ECBB31F60B13F
   PASS  AES-128-GCM encrypt (McGrew #3)
   PASS  AES-128-GCM decrypt + auth
-summary: 10 passed, 0 failed, 0 skipped
+summary: 11 passed, 0 failed, 0 skipped
 RESULT: OK
 ```
 

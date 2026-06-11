@@ -5,10 +5,17 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
-  compile:
+  compile-matrix:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        board:
+          - promicro_nrf52840
+          - xiao_nrf52840
     steps:
       - name: Checkout NiusCrypto
         uses: actions/checkout@v4
@@ -37,14 +44,23 @@ jobs:
 
       - name: Compile NiusCrypto examples (on-chip fallback, no vendored blobs)
         run: |
-          FQBN=arduinonrf:nrf52:promicro_nrf52840
+          FQBN=arduinonrf:nrf52:${{ matrix.board }}
           for ex in examples/*/; do
             echo "== $(basename "$ex") =="
             arduino-cli compile --fqbn "$FQBN" --library "$PWD" "$ex"
           done
 
-      - name: Compile CC310 shim smoke (links NiusCrypto stub backend)
+      - name: Compile CC310 shim smoke
         run: |
-          FQBN=arduinonrf:nrf52:promicro_nrf52840
+          FQBN=arduinonrf:nrf52:${{ matrix.board }}
           SKETCH="ArduinoNRF/hardware/arduinonrf/nrf52/libraries/CC310/examples/CC310Smoke"
           arduino-cli compile --fqbn "$FQBN" --library "$PWD" "$SKETCH"
+
+  compile-cc310-note:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: CC310 hardware compile requires local Nordic blobs
+        run: |
+          echo "Full CC310 link tests need vendor/tools/setup_vendored.py on a self-hosted runner."
+          echo "See docs/MULTI_BOARD.md and docs/VENDORING.md."

@@ -36,6 +36,7 @@ static constexpr size_t kAesBlockLen = 16;
 static constexpr size_t kGcmIvLen = 12;
 static constexpr size_t kGcmTagLen = 16;
 static constexpr size_t kSha256Len = 32;
+static constexpr size_t kSha512Len = 64;
 static constexpr size_t kP256PrivLen = 32;  // scalar d
 static constexpr size_t kP256PubLen = 64;   // X||Y uncompressed, no 0x04 prefix
 static constexpr size_t kP256SigLen = 64;   // R||S

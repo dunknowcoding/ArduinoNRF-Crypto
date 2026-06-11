@@ -28,6 +28,7 @@ isHardwareAccelerated	KEYWORD2
 backend	KEYWORD2
 random	KEYWORD2
 sha256	KEYWORD2
+sha512	KEYWORD2
 hmacSha256	KEYWORD2
 aesCbcEncrypt	KEYWORD2
 aesCbcDecrypt	KEYWORD2

@@ -49,6 +49,16 @@ Invoke-Upload $smokeBuild
 $env:NIUS_BOARD1_COM = $ComPort
 python (Join-Path $PSScriptRoot 'capture_board1_serial.py')
 
+Write-Host "`n-- compile SdCryptoSmoke --" -ForegroundColor Yellow
+$sdBuild = Join-Path $BuildRoot 'SdCryptoSmoke'
+New-Item -ItemType Directory -Force -Path $sdBuild | Out-Null
+$sdSketch = Join-Path $RepoRoot 'examples\SdCryptoSmoke'
+Invoke-ArduinoCli @('--fqbn', $Fqbn, '--library', $lib, '--build-path', $sdBuild, $sdSketch)
+
+Write-Host "`n-- upload + capture SdCryptoSmoke --" -ForegroundColor Yellow
+Invoke-Upload $sdBuild
+python (Join-Path $PSScriptRoot 'capture_board1_serial.py')
+
 Write-Host "`n-- compile CryptoSelfTest --" -ForegroundColor Yellow
 Invoke-ArduinoCli @('--fqbn', $Fqbn, '--library', $lib, '--build-path', $selfBuild, $selfTest)
 
