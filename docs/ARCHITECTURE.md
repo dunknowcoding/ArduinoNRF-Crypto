@@ -47,8 +47,11 @@ vendor/tools/import_cc310_sdk.py   imports libnrf_cc310.a (CRYS) from a local nR
 vendor/tools/fetch_cc310.py        fetches liboberon.a (GCM) from public nrfxlib
 ```
 
-HMAC-SHA-256 is computed in `CryptoEngine` itself (software, over
-`SoftSha256`), so it is backend-independent.
+HMAC-SHA-256 is routed through the active backend first: `CC310Backend`
+implements it with CRYS `CRYS_HMAC_*` on the CryptoCell hardware; when the
+CC310 backend is absent or returns `Unsupported`, `CryptoEngine` falls back to
+`SoftSha256::hmacSha256()` so the on-chip path still works without hardware
+HMAC.
 
 ## Backend selection
 

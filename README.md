@@ -71,6 +71,32 @@ PASS  AES-128-CTR (NIST F.5.1)              PASS  AES-128-GCM encrypt + decrypt+
 summary: 10 passed, 0 failed, 0 skipped     RESULT: OK
 ```
 
+## Installing the library
+
+NiusCrypto is **not** in the Arduino Library Manager yet (Nordic binaries cannot
+be bundled). Install manually:
+
+1. Clone into your sketchbook libraries folder (or any path passed to
+   `--library`):
+
+   ```sh
+   git clone https://github.com/dunknowcoding/ArduinoNRF-Crypto.git
+   ```
+
+2. Install the [ArduinoNRF](https://github.com/dunknowcoding/ArduinoNRF) board
+   package (Boards Manager or local `hardware/arduinonrf/nrf52/`).
+
+3. Vendor the Nordic binaries once per machine (see
+   [Enabling the CC310 backend](#enabling-the-cc310-backend)).
+
+4. In Arduino IDE 2: **Sketch → Include Library → Add .ZIP Library…** is not
+   required when the folder is already under `~/Documents/Arduino/libraries/`.
+   Restart the IDE so `#include <NiusCrypto.h>` resolves.
+
+The in-package `libraries/CC310/` shim in ArduinoNRF declares
+`depends=NiusCrypto`; install NiusCrypto before building `#include <NrfCC310.h>`
+sketches.
+
 ## Enabling the CC310 backend
 
 The Nordic binaries are not bundled. One command populates `src/cortex-m4/`
@@ -154,6 +180,7 @@ Public keys are 64 bytes (`X‖Y`), signatures 64 bytes (`R‖S`), private scala
 | `Backends` | Which backend you get and what each one supports |
 | `RandomBytes` | Streaming hardware random numbers |
 | `Sha256` | Hashing strings (interactive) |
+| `HmacSha256` | RFC 4231 HMAC-SHA-256 known-answer demo |
 | `Aes` | CBC / CTR / GCM encrypt-decrypt round-trips |
 | `EcdsaSignVerify` | P-256 key gen, sign, verify, tamper-detect |
 | `EcdhKeyExchange` | P-256 shared-secret agreement between two parties |
