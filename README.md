@@ -74,8 +74,20 @@ summary: 10 passed, 0 failed, 0 skipped     RESULT: OK
 
 ## Installing the library
 
-NiusCrypto is **not** in the Arduino Library Manager yet (Nordic binaries cannot
-be bundled). Install manually:
+### Arduino Library Manager (recommended)
+
+Search **NiusCrypto** in **Sketch → Include Library → Manage Libraries…** (Arduino IDE 2)
+or run:
+
+```sh
+arduino-cli lib install NiusCrypto
+```
+
+The Library Manager package builds with the on-chip fallback out of the box. For CC310
+hardware acceleration, vendor Nordic binaries locally once per machine — see
+[Enabling the CC310 backend](#enabling-the-cc310-backend).
+
+### Manual install (GitHub)
 
 1. Clone into your sketchbook libraries folder (or any path passed to
    `--library`):
