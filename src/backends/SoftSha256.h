@@ -33,6 +33,10 @@ class SoftSha256 {
   /** One-shot convenience: hash(in,len) -> out. */
   static void hash(const uint8_t* in, size_t len, uint8_t out[kDigestLen]);
 
+  /** RFC 2104 HMAC-SHA-256 (software). Used by OnChip and as engine fallback. */
+  static void hmacSha256(const uint8_t* key, size_t keyLen, const uint8_t* msg,
+                         size_t msgLen, uint8_t out[kDigestLen]);
+
  private:
   void processBlock(const uint8_t* p);
 

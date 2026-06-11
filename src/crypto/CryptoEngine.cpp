@@ -83,33 +83,10 @@ CryptoStatus CryptoEngine::hmacSha256(const uint8_t* key, size_t keyLen,
   if (key == nullptr && keyLen != 0) return CryptoStatus::BadParam;
   if (msg == nullptr && msgLen != 0) return CryptoStatus::BadParam;
 
-  constexpr size_t kBlock = SoftSha256::kBlockLen;  // 64
+  CryptoStatus hw = backend_->hmacSha256(key, keyLen, msg, msgLen, out);
+  if (hw != CryptoStatus::Unsupported) return hw;
 
-  // K0 = key, reduced with SHA-256 if longer than the block, zero-padded.
-  uint8_t k0[kBlock] = {0};
-  if (keyLen > kBlock) {
-    SoftSha256::hash(key, keyLen, k0);  // fills first 32 bytes, rest stay 0
-  } else {
-    for (size_t i = 0; i < keyLen; ++i) k0[i] = key[i];
-  }
-
-  uint8_t ipad[kBlock], opad[kBlock];
-  for (size_t i = 0; i < kBlock; ++i) {
-    ipad[i] = uint8_t(k0[i] ^ 0x36);
-    opad[i] = uint8_t(k0[i] ^ 0x5C);
-  }
-
-  // inner = SHA256(ipad || msg), streamed so msg can be any length.
-  uint8_t inner[kSha256Len];
-  SoftSha256 h;
-  h.update(ipad, kBlock);
-  h.update(msg, msgLen);
-  h.finish(inner);
-
-  // out = SHA256(opad || inner)
-  h.update(opad, kBlock);
-  h.update(inner, kSha256Len);
-  h.finish(out);
+  SoftSha256::hmacSha256(key, keyLen, msg, msgLen, out);
   return CryptoStatus::Ok;
 }
 

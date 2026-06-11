@@ -7,8 +7,8 @@ committed):
 
 | Archive | Provides | Source | Imported by |
 |---------|----------|--------|-------------|
-| `libnrf_cc310.a` | CRYS runtime: SHA-256, AES-CBC/CTR, ECDSA/ECDH P-256, TRNG — **on CC310 hardware** | local **nRF5 SDK 17.x** | `vendor/tools/import_cc310_sdk.py` |
-| `liboberon.a` | AES-128-**GCM** only (CRYS has no GCM) | public **nrfxlib** (no login) | `vendor/tools/fetch_cc310.py --oberon-only` |
+| `libnrf_cc310.a` | CRYS runtime: SHA-256, **HMAC-SHA-256**, AES-CBC/CTR, ECDSA/ECDH P-256, TRNG — **on CC310 hardware** | local **nRF5 SDK 17.x** | `vendor/tools/import_cc310_sdk.py` |
+| `liboberon.a` | AES-128-**GCM** only (CRYS has no GCM) | public **nrfxlib** (no login) | `vendor/tools/fetch_cc310.py` (via `setup_vendored.py`) |
 
 `library.properties` already carries the matching link directives:
 
@@ -38,13 +38,20 @@ git-ignored.
 
 ```sh
 # any Python 3; standard library only; no login required
-python vendor/tools/fetch_cc310.py --oberon-only
+python vendor/tools/fetch_cc310.py
 ```
 
-This downloads the soft-float `liboberon.a` and its headers from the public
+This is also run automatically by `setup_vendored.py`. It downloads the soft-float
+`liboberon.a` and its headers from the public
 [`nrfconnect/sdk-nrfxlib`](https://github.com/nrfconnect/sdk-nrfxlib) repo and
 leaves `library.properties` untouched. Set `GITHUB_TOKEN` to raise the API rate
 limit if needed.
+
+### One-shot setup
+
+```sh
+python vendor/tools/setup_vendored.py [path-to-nRF5_SDK_root]
+```
 
 After both steps, rebuild — `Crypto.begin()` reports `CC310` and
 `isHardwareAccelerated()` returns `true`.

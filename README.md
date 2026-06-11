@@ -29,7 +29,7 @@ void setup() {
 |-----------|-----------------|-------------------|
 | `random`  | **CC310 TRNG (hardware)**        | RNG peripheral (hardware) |
 | `sha256`  | **CC310 SHA-256 (hardware)**     | software (`SoftSha256`)   |
-| `hmacSha256` | software over `SoftSha256`    | software over `SoftSha256` |
+| `hmacSha256` | **CC310 HMAC-SHA-256 (CRYS hardware)** | software (`SoftSha256`) |
 | `aesCbcEncrypt` | **CC310 AES-CBC (hardware)** | ECB peripheral (hardware) |
 | `aesCbcDecrypt` | **CC310 AES-CBC (hardware)** | *Unsupported*¹            |
 | `aesCtr`  | **CC310 AES-CTR (hardware)**     | ECB peripheral (hardware) |
@@ -73,15 +73,18 @@ summary: 10 passed, 0 failed, 0 skipped     RESULT: OK
 
 ## Enabling the CC310 backend
 
-The Nordic binaries are not bundled. Two one-time steps populate
-`src/cortex-m4/` (archives) and `src/cc310/` (headers):
+The Nordic binaries are not bundled. One command populates `src/cortex-m4/`
+(archives) and `src/cc310/` (headers):
 
 ```sh
-# 1) CRYS runtime (SHA/AES/ECC/RNG) — copied from a local nRF5 SDK install
-python vendor/tools/import_cc310_sdk.py        # point it at your nRF5 SDK 17.x
+python vendor/tools/setup_vendored.py        # CRYS from local nRF5 SDK + Oberon from nrfxlib
+```
 
-# 2) nrf_oberon (AES-GCM only) — fetched from public nrfxlib, no login
-python vendor/tools/fetch_cc310.py --oberon-only
+Or run the steps separately:
+
+```sh
+python vendor/tools/import_cc310_sdk.py        # point at your nRF5 SDK 17.x
+python vendor/tools/fetch_cc310.py             # Oberon for AES-GCM (default)
 ```
 
 Both place the soft-float archives, copy headers, and the `precompiled=true` /
@@ -158,8 +161,9 @@ Public keys are 64 bytes (`X‖Y`), signatures 64 bytes (`R‖S`), private scala
 ## Documentation
 
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — layers, backend selection, ABI notes
-- [docs/VENDORING.md](docs/VENDORING.md) — what `fetch_cc310.py` downloads and why
-- [docs/BOARD_BRINGUP.md](docs/BOARD_BRINGUP.md) — compile + flash + read the self-test over J-Link
+- [docs/VENDORING.md](docs/VENDORING.md) — vendoring scripts and Nordic binary sources
+- [docs/VALIDATION.md](docs/VALIDATION.md) — hardware verification log (ProMicro / board1)
+- [docs/BOARD_BRINGUP.md](docs/BOARD_BRINGUP.md) — compile, UF2 flash, J-Link recovery
 
 ## License
 

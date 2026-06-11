@@ -7,10 +7,10 @@
 
     * CC310Backend  - the real Arm CryptoCell 310 hardware (needs the vendored
                       nrf_cc310 binary). Does everything below in hardware.
-    * OnChipBackend - the nRF52840's plain on-chip blocks: the ECB/CCM AES
-                      peripherals (via the core's NrfCrypto.h) and the RNG
-                      peripheral, plus a software SHA-256. AES + hash + random
-                      only; ECC / GCM report Unsupported.
+    * OnChipBackend - the nRF52840's on-chip ECB AES peripheral (via the core's
+                      NrfCrypto.h) and the RNG peripheral, plus a software
+                      SHA-256. AES + hash + random only; ECC / GCM report
+                      Unsupported.
 
   CryptoEngine picks the best available backend at begin() and forwards to it,
   so a sketch never names a backend directly.
@@ -55,6 +55,13 @@ class CryptoBackend {
   virtual CryptoStatus sha256(const uint8_t* in, size_t len,
                               uint8_t out[kSha256Len]) {
     (void)in; (void)len; (void)out; return CryptoStatus::Unsupported;
+  }
+
+  virtual CryptoStatus hmacSha256(const uint8_t* key, size_t keyLen,
+                                  const uint8_t* msg, size_t msgLen,
+                                  uint8_t out[kSha256Len]) {
+    (void)key; (void)keyLen; (void)msg; (void)msgLen; (void)out;
+    return CryptoStatus::Unsupported;
   }
 
   // ---- AES-128 (CBC / CTR) ----

@@ -11,14 +11,13 @@ NOT expose AES-GCM. This script supplies the one missing piece:
         the public nrfconnect/sdk-nrfxlib repository (no login). NiusCrypto uses
         it for AES-128-GCM only.
 
-Typical use (CRYS backend already imported):
+Typical use (after CRYS import, or as part of setup_vendored.py):
 
-    python vendor/tools/fetch_cc310.py --oberon-only
+    python vendor/tools/fetch_cc310.py
 
-Legacy use (no local nRF5 SDK; build the platform+Oberon combination that runs
-RNG + SHA-256 on CC310 and the rest in Oberon software): run with no flags. In
-that mode it also fetches `nrf_cc310_platform` and patches `library.properties`
-with the legacy `-lnrf_cc310_platform -loberon` ldflags.
+Legacy use (no local nRF5 SDK; platform+Oberon combination with RNG/SHA on
+CC310 platform only): add --legacy-platform. That also fetches nrf_cc310_platform
+and patches library.properties with -lnrf_cc310_platform -loberon.
 
   (The classic self-contained CRYS "nrf_cc310" library that does ECC/GCM on
    CC310 hardware ships ONLY inside the nRF5 SDK, so it is imported locally by
@@ -121,9 +120,10 @@ def fetch_includes(path, manifest):
 
 
 def main():
-    oberon_only = "--oberon-only" in sys.argv[1:]
+    legacy_platform = "--legacy-platform" in sys.argv[1:]
+    oberon_only = not legacy_platform
     libs = {"oberon": LIBS["oberon"]} if oberon_only else LIBS
-    mode = "Oberon only (GCM)" if oberon_only else "CC310 platform + Oberon"
+    mode = "Oberon only (GCM)" if oberon_only else "CC310 platform + Oberon (legacy)"
     print("NiusCrypto :: fetching {} (soft-float)".format(mode))
     manifest = ["Vendored from {}@{}".format(REPO, REF), ""]
 
@@ -162,8 +162,8 @@ def main():
         f.write("\n".join(manifest) + "\n")
 
     if oberon_only:
-        print("  --oberon-only: leaving library.properties untouched "
-              "(CRYS ldflags from import_cc310_sdk.py are kept)")
+        print("  Oberon-only fetch: leaving library.properties untouched "
+              "(CRYS ldflags from import_cc310_sdk.py / setup_vendored.py)")
     else:
         patch_library_properties()
     print("done. Rebuild and the CC310 backend will activate automatically.")

@@ -6,7 +6,7 @@
 
       CC310 hardware  -> if the nrf_cc310 binary was vendored and the
                          CryptoCell powers up (full AES + SHA + ECC + TRNG).
-      On-chip / sw    -> otherwise the nRF52840's ECB/CCM AES + RNG peripherals
+      On-chip / sw    -> otherwise the nRF52840's ECB AES + RNG peripherals
                          plus a software SHA-256 (AES + hash + random only).
 
   Every call returns a CryptoStatus. Operations a backend cannot do return
@@ -55,8 +55,8 @@ class CryptoEngine {
   CryptoStatus sha256(const uint8_t* in, size_t len, uint8_t out[kSha256Len]);
 
   /**
-   * HMAC-SHA-256 (RFC 2104). Built on sha256(), so it is available on every
-   * backend - including the on-chip fallback - not just CC310.
+   * HMAC-SHA-256 (RFC 2104). Uses the backend's hardware HMAC when available
+   * (CC310), otherwise the software SoftSha256 path (always available).
    */
   CryptoStatus hmacSha256(const uint8_t* key, size_t keyLen,
                           const uint8_t* msg, size_t msgLen,

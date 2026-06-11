@@ -2,9 +2,8 @@
   CC310Backend.h - the real Arm CryptoCell 310 hardware backend.
 
   This backend drives the nRF52840's CryptoCell 310 accelerator through
-  Nordic's nrf_cc310 binary library. That binary is NOT bundled with this
-  repository; run vendor/tools/fetch_cc310.py to download it (see
-  docs/VENDORING.md).
+  Nordic's CRYS runtime (libnrf_cc310.a from the nRF5 SDK). That binary is NOT
+  bundled; run vendor/tools/setup_vendored.py — see docs/VENDORING.md.
 
   Auto-detection: the .cpp compiles in real-hardware mode only when the
   vendored headers are present (checked with __has_include). Until then it
@@ -32,6 +31,9 @@ class CC310Backend : public CryptoBackend {
   CryptoStatus randomBytes(uint8_t* buf, size_t len) override;
   CryptoStatus sha256(const uint8_t* in, size_t len,
                       uint8_t out[kSha256Len]) override;
+  CryptoStatus hmacSha256(const uint8_t* key, size_t keyLen,
+                          const uint8_t* msg, size_t msgLen,
+                          uint8_t out[kSha256Len]) override;
 
   CryptoStatus aes128CbcEncrypt(const uint8_t key[kAes128KeyLen],
                                 const uint8_t iv[kAesBlockLen],

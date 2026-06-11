@@ -117,4 +117,30 @@ void SoftSha256::hash(const uint8_t* in, size_t len, uint8_t out[kDigestLen]) {
   h.finish(out);
 }
 
+void SoftSha256::hmacSha256(const uint8_t* key, size_t keyLen, const uint8_t* msg,
+                              size_t msgLen, uint8_t out[kDigestLen]) {
+  uint8_t k0[kBlockLen] = {0};
+  if (keyLen > kBlockLen) {
+    hash(key, keyLen, k0);
+  } else {
+    for (size_t i = 0; i < keyLen; ++i) k0[i] = key[i];
+  }
+
+  uint8_t ipad[kBlockLen], opad[kBlockLen];
+  for (size_t i = 0; i < kBlockLen; ++i) {
+    ipad[i] = uint8_t(k0[i] ^ 0x36);
+    opad[i] = uint8_t(k0[i] ^ 0x5C);
+  }
+
+  uint8_t inner[kDigestLen];
+  SoftSha256 h;
+  h.update(ipad, kBlockLen);
+  h.update(msg, msgLen);
+  h.finish(inner);
+
+  h.update(opad, kBlockLen);
+  h.update(inner, kDigestLen);
+  h.finish(out);
+}
+
 }  // namespace ncrypto
