@@ -65,7 +65,10 @@ struct RsaPublicKey {
 
 /**
  * RSA-2048 key pair handle. Private key material stays in the CC310 backend slot;
- * `pub` holds the exported public half for verify / share.
+ * pub holds the exported public half for verify / share.
+ *
+ * Call rsaRelease() (or rsaReleaseKeyPair()) when done to free the backend slot.
+ * At most two live key pairs can exist at once (two backend slots).
  */
 struct RsaKeyPair {
   uint8_t slot = kRsaInvalidSlot;

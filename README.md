@@ -225,6 +225,29 @@ Crypto.rsaVerifyWithPubKey(&key.pub, msg, msgLen, sig256);
 
 RsaPublicKey exported;
 Crypto.rsaExportPublic(&key, &exported);
+Crypto.rsaRelease(&key);                     // free backend slot (max 2 live keys)
+```
+
+### Packet structs (v0.5.1+)
+
+Group related pointers and lengths into one struct; use **seal** (encrypt/authenticate)
+and **open** (decrypt/verify) names for AEAD:
+
+```cpp
+AesGcmMessage gcm;
+memcpy(gcm.key, key, NIUS_AES128_KEY);
+memcpy(gcm.nonce, iv, NIUS_GCM_IV);
+gcm.input = plaintext;  gcm.inputLen = len;  gcm.output = ciphertext;
+Crypto.aesGcmSeal(gcm);                          // writes gcm.authenticationTag
+
+gcm.input = ciphertext;  gcm.output = recovered;
+Crypto.aesGcmOpen(gcm);                          // AuthFailed if tag mismatch
+
+ChaChaPolyMessage chacha;   // same pattern
+Sha256Message hash;  hash.data = msg;  hash.dataLen = len;  Crypto.sha256(hash);
+HmacMessage mac;       /* fill key, message */  Crypto.hmacSha256(mac);
+AesCbcMessage cbc;   Crypto.aesCbcSeal(cbc) / aesCbcOpen(cbc);
+AesCtrMessage ctr;   Crypto.aesCtrTransform(ctr);
 ```
 
 Legacy implicit key (slot 0, still supported):

@@ -360,6 +360,21 @@ void runTests() {
       skip("RSA-2048 PKCS#1 SHA-256 sign/verify", kg);
       skip("RSA-2048 export pub + VerifyPub", kg);
     }
+
+    RsaKeyPair explicitKey;
+    CryptoStatus eg = Crypto.rsaGenerate(&explicitKey);
+    if (eg == CryptoStatus::Ok) {
+      bool released = (Crypto.rsaRelease(&explicitKey) == CryptoStatus::Ok &&
+                       !explicitKey.valid());
+      RsaKeyPair again;
+      bool regen = (Crypto.rsaGenerate(&again) == CryptoStatus::Ok);
+      if (regen) Crypto.rsaRelease(&again);
+      report("RSA RsaKeyPair generate + release + regen", released && regen);
+    } else if (eg == CryptoStatus::Unsupported) {
+      skip("RSA RsaKeyPair generate + release + regen", eg);
+    } else {
+      report("RSA RsaKeyPair generate + release + regen", false);
+    }
   }
 
   // Ed25519 RFC 8032 test vector #1 (empty message)

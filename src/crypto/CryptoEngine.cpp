@@ -48,6 +48,7 @@ void CryptoEngine::end() {
     backend_->end();
     backend_ = nullptr;
   }
+  legacyRsa_.clear();
 }
 
 const char* CryptoEngine::backendName() const {
@@ -119,6 +120,14 @@ CryptoStatus CryptoEngine::hmacSha256(const uint8_t* key, size_t keyLen,
   return CryptoStatus::Ok;
 }
 
+CryptoStatus CryptoEngine::hmacSha256(HmacMessage& msg) {
+  return hmacSha256(msg.key, msg.keyLen, msg.message, msg.messageLen, msg.mac);
+}
+
+CryptoStatus CryptoEngine::sha256(Sha256Message& msg) {
+  return sha256(msg.data, msg.dataLen, msg.digest);
+}
+
 CryptoStatus CryptoEngine::aesCbcEncrypt(const uint8_t key[kAes128KeyLen],
                                          const uint8_t iv[kAesBlockLen],
                                          const uint8_t* in, uint8_t* out,
@@ -168,6 +177,51 @@ CryptoStatus CryptoEngine::aesGcmDecrypt(const uint8_t key[kAes128KeyLen],
   return backend_->aes128GcmDecrypt(key, iv, aad, aadLen, in, out, len, tag);
 }
 
+CryptoStatus CryptoEngine::aesGcmSeal(AesGcmMessage& msg) {
+  NC_GUARD();
+  if (msg.inputLen != 0 && (msg.input == nullptr || msg.output == nullptr))
+    return CryptoStatus::BadParam;
+  if (msg.authenticatedDataLen != 0 && msg.authenticatedData == nullptr)
+    return CryptoStatus::BadParam;
+  return aesGcmEncrypt(msg.key, msg.nonce, msg.authenticatedData,
+                       msg.authenticatedDataLen, msg.input, msg.output,
+                       msg.inputLen, msg.authenticationTag);
+}
+
+CryptoStatus CryptoEngine::aesGcmOpen(AesGcmMessage& msg) {
+  NC_GUARD();
+  if (msg.inputLen != 0 && (msg.input == nullptr || msg.output == nullptr))
+    return CryptoStatus::BadParam;
+  if (msg.authenticatedDataLen != 0 && msg.authenticatedData == nullptr)
+    return CryptoStatus::BadParam;
+  return aesGcmDecrypt(msg.key, msg.nonce, msg.authenticatedData,
+                       msg.authenticatedDataLen, msg.input, msg.output,
+                       msg.inputLen, msg.authenticationTag);
+}
+
+CryptoStatus CryptoEngine::aesCbcSeal(AesCbcMessage& msg) {
+  NC_GUARD();
+  if (msg.inputLen != 0 && (msg.input == nullptr || msg.output == nullptr))
+    return CryptoStatus::BadParam;
+  if (msg.inputLen % kAesBlockLen != 0) return CryptoStatus::BadParam;
+  return aesCbcEncrypt(msg.key, msg.iv, msg.input, msg.output, msg.inputLen);
+}
+
+CryptoStatus CryptoEngine::aesCbcOpen(AesCbcMessage& msg) {
+  NC_GUARD();
+  if (msg.inputLen != 0 && (msg.input == nullptr || msg.output == nullptr))
+    return CryptoStatus::BadParam;
+  if (msg.inputLen % kAesBlockLen != 0) return CryptoStatus::BadParam;
+  return aesCbcDecrypt(msg.key, msg.iv, msg.input, msg.output, msg.inputLen);
+}
+
+CryptoStatus CryptoEngine::aesCtrTransform(AesCtrMessage& msg) {
+  NC_GUARD();
+  if (msg.inputLen != 0 && (msg.input == nullptr || msg.output == nullptr))
+    return CryptoStatus::BadParam;
+  return aesCtr(msg.key, msg.iv, msg.input, msg.output, msg.inputLen);
+}
+
 CryptoStatus CryptoEngine::chachaPolyEncrypt(const uint8_t key[kChaPolyKeyLen],
                                              const uint8_t nonce[kChaPolyNonceLen],
                                              const uint8_t* aad, size_t aadLen,
@@ -193,6 +247,28 @@ CryptoStatus CryptoEngine::chachaPolyDecrypt(const uint8_t key[kChaPolyKeyLen],
   if (aadLen != 0 && aad == nullptr) return CryptoStatus::BadParam;
   return backend_->chachaPolyDecrypt(key, nonce, aad, aadLen, in, out, len,
                                      tag);
+}
+
+CryptoStatus CryptoEngine::chachaPolySeal(ChaChaPolyMessage& msg) {
+  NC_GUARD();
+  if (msg.inputLen != 0 && (msg.input == nullptr || msg.output == nullptr))
+    return CryptoStatus::BadParam;
+  if (msg.authenticatedDataLen != 0 && msg.authenticatedData == nullptr)
+    return CryptoStatus::BadParam;
+  return chachaPolyEncrypt(msg.key, msg.nonce, msg.authenticatedData,
+                           msg.authenticatedDataLen, msg.input, msg.output,
+                           msg.inputLen, msg.authenticationTag);
+}
+
+CryptoStatus CryptoEngine::chachaPolyOpen(ChaChaPolyMessage& msg) {
+  NC_GUARD();
+  if (msg.inputLen != 0 && (msg.input == nullptr || msg.output == nullptr))
+    return CryptoStatus::BadParam;
+  if (msg.authenticatedDataLen != 0 && msg.authenticatedData == nullptr)
+    return CryptoStatus::BadParam;
+  return chachaPolyDecrypt(msg.key, msg.nonce, msg.authenticatedData,
+                           msg.authenticatedDataLen, msg.input, msg.output,
+                           msg.inputLen, msg.authenticationTag);
 }
 
 CryptoStatus CryptoEngine::ecdsaGenerateKey(uint8_t priv[kP256PrivLen],
@@ -282,6 +358,14 @@ CryptoStatus CryptoEngine::rsaExportPublicKey(const RsaKeyPair* key,
   NC_GUARD();
   if (!key || !key->valid() || !out) return CryptoStatus::BadParam;
   return backend_->rsaExportPublicKey(key, out);
+}
+
+CryptoStatus CryptoEngine::rsaReleaseKeyPair(RsaKeyPair* key) {
+  NC_GUARD();
+  if (!key || !key->valid()) return CryptoStatus::BadParam;
+  CryptoStatus s = backend_->rsaReleaseKeyPair(key);
+  if (key == &legacyRsa_) legacyRsa_.clear();
+  return s;
 }
 
 CryptoStatus CryptoEngine::rsa2048GenerateKey() {

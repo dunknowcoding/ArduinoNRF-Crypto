@@ -102,6 +102,7 @@ struct RsaSlot {
 
 static constexpr int kRsaSlotCount = 2;
 static RsaSlot g_rsaSlots[kRsaSlotCount];
+static bool g_rsaReady = false;
 
 static bool rsaSlotValid(uint8_t slot) {
   return slot < kRsaSlotCount && g_rsaSlots[slot].ready;
@@ -111,6 +112,17 @@ static int rsaAllocSlot() {
   for (int i = 0; i < kRsaSlotCount; ++i)
     if (!g_rsaSlots[i].ready) return i;
   return -1;
+}
+
+static void rsaFreeSlot(uint8_t slot) {
+  if (slot >= kRsaSlotCount) return;
+  memset(&g_rsaSlots[slot], 0, sizeof(RsaSlot));
+  g_rsaSlots[slot].ready = false;
+  if (slot == 0) g_rsaReady = false;
+}
+
+static void rsaFreeAllSlots() {
+  for (int i = 0; i < kRsaSlotCount; ++i) rsaFreeSlot(static_cast<uint8_t>(i));
 }
 
 static CryptoStatus rsaExportSlotPub(uint8_t slot, RsaPublicKey* out) {
@@ -124,8 +136,6 @@ static CryptoStatus rsaExportSlotPub(uint8_t slot, RsaPublicKey* out) {
   out->expLen = expLen;
   return CryptoStatus::Ok;
 }
-
-static bool g_rsaReady = false;
 
 CryptoStatus bounceMsg(const uint8_t* in, size_t len, uint8_t** out) {
   if (len == 0) {
@@ -232,6 +242,7 @@ bool CC310Backend::begin() {
 
 void CC310Backend::end() {
   if (started_) {
+    rsaFreeAllSlots();
     CRYS_RND_UnInstantiation(&g_rndState);
     SaSi_LibFini();
     started_ = false;
@@ -640,6 +651,13 @@ CryptoStatus CC310Backend::rsaExportPublicKey(const RsaKeyPair* key,
   return CryptoStatus::Ok;
 }
 
+CryptoStatus CC310Backend::rsaReleaseKeyPair(RsaKeyPair* key) {
+  if (!key || !rsaSlotValid(key->slot)) return CryptoStatus::BadParam;
+  rsaFreeSlot(key->slot);
+  key->clear();
+  return CryptoStatus::Ok;
+}
+
 CryptoStatus CC310Backend::rsa2048GenerateKey() {
   if (!started_) return CryptoStatus::NotStarted;
   g_rsaSlots[0].ready = false;
@@ -819,6 +837,11 @@ CryptoStatus CC310Backend::rsaSignWithKeyPair(const RsaKeyPair*, const uint8_t*,
 CryptoStatus CC310Backend::rsaVerifyWithKeyPair(const RsaKeyPair*, const uint8_t*, size_t, const uint8_t*) { return CryptoStatus::HardwareMissing; }
 CryptoStatus CC310Backend::rsaVerifyWithPublicKey(const RsaPublicKey*, const uint8_t*, size_t, const uint8_t*) { return CryptoStatus::HardwareMissing; }
 CryptoStatus CC310Backend::rsaExportPublicKey(const RsaKeyPair*, RsaPublicKey*) { return CryptoStatus::HardwareMissing; }
+CryptoStatus CC310Backend::rsaReleaseKeyPair(RsaKeyPair* key) {
+  if (!key || !key->valid()) return CryptoStatus::BadParam;
+  key->clear();
+  return CryptoStatus::HardwareMissing;
+}
 CryptoStatus CC310Backend::rsaPkcs1Sha256Sign(const uint8_t*, size_t, uint8_t*) { return CryptoStatus::HardwareMissing; }
 CryptoStatus CC310Backend::rsaPkcs1Sha256Verify(const uint8_t*, size_t, const uint8_t*) { return CryptoStatus::HardwareMissing; }
 CryptoStatus CC310Backend::rsa2048ExportPubKey(uint8_t*, uint16_t*, uint8_t*, uint16_t*) { return CryptoStatus::HardwareMissing; }

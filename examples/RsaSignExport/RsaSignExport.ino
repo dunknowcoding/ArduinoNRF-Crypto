@@ -67,6 +67,9 @@ void setup() {
           ? F("FAIL (should reject)")
           : F("OK (rejected)"));
 
+  Crypto.rsaRelease(&key);
+  Serial.println(F("rsaRelease: slot freed"));
+
   Serial.println(F("RESULT: OK"));
 }
 

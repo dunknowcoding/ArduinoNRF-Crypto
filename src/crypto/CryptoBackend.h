@@ -218,6 +218,11 @@ class CryptoBackend {
                                           RsaPublicKey* out) {
     (void)key; (void)out; return CryptoStatus::Unsupported;
   }
+  virtual CryptoStatus rsaReleaseKeyPair(RsaKeyPair* key) {
+    if (!key || !key->valid()) return CryptoStatus::BadParam;
+    key->clear();
+    return CryptoStatus::Ok;
+  }
 
   virtual CryptoStatus rsa2048GenerateKey() {
     return CryptoStatus::Unsupported;

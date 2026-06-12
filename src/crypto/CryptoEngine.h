@@ -18,6 +18,7 @@
 
 #include "CryptoBackend.h"
 #include "CryptoTypes.h"
+#include "CryptoPackets.h"
 
 namespace ncrypto {
 
@@ -93,6 +94,15 @@ class CryptoEngine {
                              const uint8_t* in, uint8_t* out, size_t len,
                              const uint8_t tag[kGcmTagLen]);
 
+  /** Packet-style AES-GCM: encrypt plaintext into output + authenticationTag. */
+  CryptoStatus aesGcmSeal(AesGcmMessage& msg);
+  /** Packet-style AES-GCM: decrypt and verify authenticationTag. */
+  CryptoStatus aesGcmOpen(AesGcmMessage& msg);
+
+  CryptoStatus aesCbcSeal(AesCbcMessage& msg);
+  CryptoStatus aesCbcOpen(AesCbcMessage& msg);
+  CryptoStatus aesCtrTransform(AesCtrMessage& msg);
+
   /** ChaCha20-Poly1305 AEAD (RFC 8439). CC310/Oberon only; 12-byte nonce. */
   CryptoStatus chachaPolyEncrypt(const uint8_t key[kChaPolyKeyLen],
                                  const uint8_t nonce[kChaPolyNonceLen],
@@ -104,6 +114,13 @@ class CryptoEngine {
                                  const uint8_t* aad, size_t aadLen,
                                  const uint8_t* in, uint8_t* out, size_t len,
                                  const uint8_t tag[kChaPolyTagLen]);
+
+  CryptoStatus chachaPolySeal(ChaChaPolyMessage& msg);
+  CryptoStatus chachaPolyOpen(ChaChaPolyMessage& msg);
+
+  /** Convenience wrappers that fill HmacMessage.mac / Sha256Message.digest. */
+  CryptoStatus hmacSha256(HmacMessage& msg);
+  CryptoStatus sha256(Sha256Message& msg);
 
   // ---- ECDSA / ECDH P-256 (CC310 only) ----
   CryptoStatus ecdsaGenerateKey(uint8_t priv[kP256PrivLen],
@@ -137,6 +154,12 @@ class CryptoEngine {
                                       const uint8_t sig[kRsa2048SigLen]);
   CryptoStatus rsaExportPublicKey(const RsaKeyPair* key, RsaPublicKey* out);
 
+  /**
+   * Return an RSA backend slot held by key. Safe to call on an already-cleared
+   * handle (returns BadParam). After success, key->valid() is false.
+   */
+  CryptoStatus rsaReleaseKeyPair(RsaKeyPair* key);
+
   /** @deprecated Use rsaGenerateKeyPair + rsaSignWithKeyPair instead. */
   CryptoStatus rsa2048GenerateKey();
   CryptoStatus rsaPkcs1Sha256Sign(const uint8_t* msg, size_t msgLen,
@@ -168,6 +191,7 @@ class CryptoEngine {
   inline CryptoStatus rsaExportPublic(const RsaKeyPair* key, RsaPublicKey* out) {
     return rsaExportPublicKey(key, out);
   }
+  inline CryptoStatus rsaRelease(RsaKeyPair* key) { return rsaReleaseKeyPair(key); }
 
   /** Ed25519 sign/verify (CC310). secret is 64 bytes (CRYS seed||pub layout). */
   CryptoStatus ed25519GenerateKey(uint8_t secret[kEd25519SecLen],
@@ -197,6 +221,12 @@ class CryptoEngine {
                                    uint8_t sig[kEd25519SigLen]);
 
   /** AEAD aliases (RFC 8439). */
+  inline CryptoStatus chacha20Poly1305Seal(ChaChaPolyMessage& msg) {
+    return chachaPolySeal(msg);
+  }
+  inline CryptoStatus chacha20Poly1305Open(ChaChaPolyMessage& msg) {
+    return chachaPolyOpen(msg);
+  }
   inline CryptoStatus chacha20Poly1305Encrypt(
       const uint8_t key[kChaPolyKeyLen], const uint8_t nonce[kChaPolyNonceLen],
       const uint8_t* aad, size_t aadLen, const uint8_t* in, uint8_t* out,

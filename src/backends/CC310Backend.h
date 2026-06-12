@@ -107,6 +107,7 @@ class CC310Backend : public CryptoBackend {
                                       const uint8_t sig[kRsa2048SigLen]) override;
   CryptoStatus rsaExportPublicKey(const RsaKeyPair* key,
                                   RsaPublicKey* out) override;
+  CryptoStatus rsaReleaseKeyPair(RsaKeyPair* key) override;
 
   CryptoStatus rsa2048GenerateKey() override;
   CryptoStatus rsaPkcs1Sha256Sign(const uint8_t* msg, size_t msgLen,

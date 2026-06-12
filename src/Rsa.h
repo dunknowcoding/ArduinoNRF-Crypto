@@ -7,8 +7,9 @@
       Crypto.rsaGenerate(&key);
       Crypto.rsaSign(&key, msg, msgLen, sig256);
       Crypto.rsaVerifyWithPubKey(&key.pub, msg, msgLen, sig256);
+      Crypto.rsaRelease(&key);   // free the backend slot when finished
 
-  Legacy (implicit key in slot 0):
+  Legacy implicit key (slot 0, still supported):
       Crypto.rsa2048GenerateKey();
       Crypto.rsaPkcs1Sha256Sign(msg, msgLen, sig256);
 

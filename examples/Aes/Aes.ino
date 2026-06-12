@@ -59,22 +59,41 @@ void setup() {
                                                : F("  decrypt MISMATCH"));
   }
 
-  Serial.println(F("\n[AES-128-GCM]"));
-  uint8_t iv12[12];
-  memcpy(iv12, iv, 12);
+  Serial.println(F("\n[AES-128-GCM — packet API]"));
+  uint8_t iv12[NIUS_GCM_IV];
+  memcpy(iv12, iv, sizeof(iv12));
+  AesGcmMessage pkt;
+  memcpy(pkt.key, key, sizeof(pkt.key));
+  memcpy(pkt.nonce, iv12, sizeof(pkt.nonce));
+  pkt.input = pt;
+  pkt.inputLen = padded;
+  pkt.output = ct;
+  if (NIUS_OK(Crypto.aesGcmSeal(pkt))) {
+    Serial.print(F("  ct:  ")); printHex(ct, padded);
+    Serial.print(F("  tag: ")); printHex(pkt.authenticationTag, NIUS_GCM_TAG);
+    pkt.input = ct;
+    pkt.output = rt;
+    Serial.println(NIUS_OK(Crypto.aesGcmOpen(pkt)) && memcmp(rt, pt, padded) == 0
+                       ? F("  open OK")
+                       : F("  open FAILED"));
+  }
+
+  Serial.println(F("\n[AES-128-GCM — classic API]"));
+  uint8_t iv12b[NIUS_GCM_IV];
+  memcpy(iv12b, iv, sizeof(iv12b));
   uint8_t tag[16];
-  CryptoStatus e = Crypto.aesGcmEncrypt(key, iv12, nullptr, 0, pt, ct, padded, tag);
+  CryptoStatus e = Crypto.aesGcmEncrypt(key, iv12b, nullptr, 0, pt, ct, padded, tag);
   if (e == CryptoStatus::Ok) {
     Serial.print(F("  ct:  ")); printHex(ct, padded);
     Serial.print(F("  tag: ")); printHex(tag, 16);
-    CryptoStatus d = Crypto.aesGcmDecrypt(key, iv12, nullptr, 0, ct, rt, padded, tag);
+    CryptoStatus d = Crypto.aesGcmDecrypt(key, iv12b, nullptr, 0, ct, rt, padded, tag);
     Serial.println(d == CryptoStatus::Ok && memcmp(rt, pt, padded) == 0
                        ? F("  decrypt + auth OK")
                        : F("  decrypt/auth FAILED"));
     ct[0] ^= 0x01;  // tamper
     Serial.print(F("  tamper -> "));
     Serial.println(cryptoStatusName(
-        Crypto.aesGcmDecrypt(key, iv12, nullptr, 0, ct, rt, padded, tag)));
+        Crypto.aesGcmDecrypt(key, iv12b, nullptr, 0, ct, rt, padded, tag)));
   } else {
     Serial.print(F("  encrypt: "));
     Serial.println(cryptoStatusName(e));
