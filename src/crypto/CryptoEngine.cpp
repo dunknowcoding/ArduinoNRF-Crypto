@@ -13,6 +13,9 @@
 #include "../backends/CC310Backend.h"
 #include "../backends/OnChipBackend.h"
 #include "../backends/SoftSha256.h"
+#include "../backends/SoftHkdf.h"
+#include "../backends/SoftSha512.h"
+#include "CryptoSelfTestRunner.h"
 
 namespace ncrypto {
 
@@ -59,6 +62,15 @@ bool CryptoEngine::isHardwareAccelerated() const {
   return backend_ && backend_->hardwareAccelerated();
 }
 
+bool CryptoEngine::supports(CryptoCapability cap) const {
+  if (cap == CryptoCapability::Sha256Stream ||
+      cap == CryptoCapability::Sha384Stream ||
+      cap == CryptoCapability::Sha512Stream) {
+    return true;
+  }
+  return backend_ && backend_->supportsCapability(cap);
+}
+
 // Forward to the active backend, guarding the not-started case.
 #define NC_GUARD()                                   \
   do {                                               \
@@ -78,20 +90,6 @@ CryptoStatus CryptoEngine::sha256(const uint8_t* in, size_t len,
   return backend_->sha256(in, len, out);
 }
 
-CryptoStatus CryptoEngine::sha384(const uint8_t* in, size_t len,
-                                  uint8_t out[kSha384Len]) {
-  NC_GUARD();
-  if (out == nullptr || (in == nullptr && len != 0)) return CryptoStatus::BadParam;
-  return backend_->sha384(in, len, out);
-}
-
-CryptoStatus CryptoEngine::sha512(const uint8_t* in, size_t len,
-                                  uint8_t out[kSha512Len]) {
-  NC_GUARD();
-  if (out == nullptr || (in == nullptr && len != 0)) return CryptoStatus::BadParam;
-  return backend_->sha512(in, len, out);
-}
-
 CryptoStatus CryptoEngine::hkdfSha256(const uint8_t* ikm, size_t ikmLen,
                                       const uint8_t* salt, size_t saltLen,
                                       const uint8_t* info, size_t infoLen,
@@ -101,8 +99,11 @@ CryptoStatus CryptoEngine::hkdfSha256(const uint8_t* ikm, size_t ikmLen,
   if (ikm == nullptr && ikmLen != 0) return CryptoStatus::BadParam;
   if (salt == nullptr && saltLen != 0) return CryptoStatus::BadParam;
   if (info == nullptr && infoLen != 0) return CryptoStatus::BadParam;
-  return backend_->hkdfSha256(ikm, ikmLen, salt, saltLen, info, infoLen, okm,
-                              okmLen);
+  CryptoStatus hw = backend_->hkdfSha256(ikm, ikmLen, salt, saltLen, info,
+                                          infoLen, okm, okmLen);
+  if (hw != CryptoStatus::Unsupported) return hw;
+  SoftHkdf::hkdfSha256(ikm, ikmLen, salt, saltLen, info, infoLen, okm, okmLen);
+  return CryptoStatus::Ok;
 }
 
 CryptoStatus CryptoEngine::hmacSha256(const uint8_t* key, size_t keyLen,
@@ -120,12 +121,108 @@ CryptoStatus CryptoEngine::hmacSha256(const uint8_t* key, size_t keyLen,
   return CryptoStatus::Ok;
 }
 
-CryptoStatus CryptoEngine::hmacSha256(HmacMessage& msg) {
-  return hmacSha256(msg.key, msg.keyLen, msg.message, msg.messageLen, msg.mac);
+CryptoStatus CryptoEngine::sha384(const uint8_t* in, size_t len,
+                                  uint8_t out[kSha384Len]) {
+  NC_GUARD();
+  if (out == nullptr || (in == nullptr && len != 0)) return CryptoStatus::BadParam;
+  CryptoStatus hw = backend_->sha384(in, len, out);
+  if (hw != CryptoStatus::Unsupported) return hw;
+  SoftSha512::hash384(in, len, out);
+  return CryptoStatus::Ok;
+}
+
+CryptoStatus CryptoEngine::sha512(const uint8_t* in, size_t len,
+                                  uint8_t out[kSha512Len]) {
+  NC_GUARD();
+  if (out == nullptr || (in == nullptr && len != 0)) return CryptoStatus::BadParam;
+  CryptoStatus hw = backend_->sha512(in, len, out);
+  if (hw != CryptoStatus::Unsupported) return hw;
+  SoftSha512::hash512(in, len, out);
+  return CryptoStatus::Ok;
+}
+
+CryptoStatus CryptoEngine::sha256Begin(Sha256Context& ctx) {
+  ctx.hasher.reset();
+  ctx.active = true;
+  return CryptoStatus::Ok;
+}
+
+CryptoStatus CryptoEngine::sha256Update(Sha256Context& ctx, const uint8_t* data,
+                                        size_t len) {
+  if (!ctx.active) return CryptoStatus::BadParam;
+  ctx.hasher.update(data, len);
+  return CryptoStatus::Ok;
+}
+
+CryptoStatus CryptoEngine::sha256Finish(Sha256Context& ctx,
+                                        uint8_t out[kSha256Len]) {
+  if (!ctx.active || out == nullptr) return CryptoStatus::BadParam;
+  ctx.hasher.finish(out);
+  ctx.active = false;
+  return CryptoStatus::Ok;
+}
+
+CryptoStatus CryptoEngine::sha384Begin(Sha384Context& ctx) {
+  ctx.hasher.reset384();
+  ctx.active = true;
+  return CryptoStatus::Ok;
+}
+
+CryptoStatus CryptoEngine::sha384Update(Sha384Context& ctx, const uint8_t* data,
+                                        size_t len) {
+  if (!ctx.active) return CryptoStatus::BadParam;
+  ctx.hasher.update(data, len);
+  return CryptoStatus::Ok;
+}
+
+CryptoStatus CryptoEngine::sha384Finish(Sha384Context& ctx,
+                                        uint8_t out[kSha384Len]) {
+  if (!ctx.active || out == nullptr) return CryptoStatus::BadParam;
+  ctx.hasher.finish(out);
+  ctx.active = false;
+  return CryptoStatus::Ok;
+}
+
+CryptoStatus CryptoEngine::sha512Begin(Sha512Context& ctx) {
+  ctx.hasher.reset();
+  ctx.active = true;
+  return CryptoStatus::Ok;
+}
+
+CryptoStatus CryptoEngine::sha512Update(Sha512Context& ctx, const uint8_t* data,
+                                        size_t len) {
+  if (!ctx.active) return CryptoStatus::BadParam;
+  ctx.hasher.update(data, len);
+  return CryptoStatus::Ok;
+}
+
+CryptoStatus CryptoEngine::sha512Finish(Sha512Context& ctx,
+                                        uint8_t out[kSha512Len]) {
+  if (!ctx.active || out == nullptr) return CryptoStatus::BadParam;
+  ctx.hasher.finish(out);
+  ctx.active = false;
+  return CryptoStatus::Ok;
 }
 
 CryptoStatus CryptoEngine::sha256(Sha256Message& msg) {
   return sha256(msg.data, msg.dataLen, msg.digest);
+}
+
+CryptoStatus CryptoEngine::sha384(Sha384Message& msg) {
+  return sha384(msg.data, msg.dataLen, msg.digest);
+}
+
+CryptoStatus CryptoEngine::sha512(Sha512Message& msg) {
+  return sha512(msg.data, msg.dataLen, msg.digest);
+}
+
+CryptoStatus CryptoEngine::hkdfSha256(HkdfMessage& msg) {
+  return hkdfSha256(msg.ikm, msg.ikmLen, msg.salt, msg.saltLen, msg.info,
+                    msg.infoLen, msg.okm, msg.okmLen);
+}
+
+CryptoStatus CryptoEngine::hmacSha256(HmacMessage& msg) {
+  return hmacSha256(msg.key, msg.keyLen, msg.message, msg.messageLen, msg.mac);
 }
 
 CryptoStatus CryptoEngine::aesCbcEncrypt(const uint8_t key[kAes128KeyLen],
@@ -294,6 +391,24 @@ CryptoStatus CryptoEngine::ecdsaVerify(const uint8_t pub[kP256PubLen],
   return backend_->ecdsaP256Verify(pub, hash, sig);
 }
 
+CryptoStatus CryptoEngine::ecdsaGenerateKey(EcdsaMessage& msg) {
+  return ecdsaGenerateKey(msg.privateKey, msg.publicKey);
+}
+
+CryptoStatus CryptoEngine::ecdsaSign(EcdsaMessage& msg) {
+  if (msg.hashOverride != nullptr)
+    return ecdsaSign(msg.privateKey, msg.hashOverride, msg.signature);
+  return ecdsaSignMessage(msg.privateKey, msg.payload, msg.payloadLen,
+                            msg.signature);
+}
+
+CryptoStatus CryptoEngine::ecdsaVerify(EcdsaMessage& msg) {
+  if (msg.hashOverride != nullptr)
+    return ecdsaVerify(msg.publicKey, msg.hashOverride, msg.signature);
+  return ecdsaVerifyMessage(msg.publicKey, msg.payload, msg.payloadLen,
+                              msg.signature);
+}
+
 CryptoStatus CryptoEngine::ecdhShared(const uint8_t priv[kP256PrivLen],
                                       const uint8_t peerPub[kP256PubLen],
                                       uint8_t shared[kP256SharedLen]) {
@@ -315,6 +430,14 @@ CryptoStatus CryptoEngine::x25519Shared(const uint8_t priv[kX25519KeyLen],
   NC_GUARD();
   if (!priv || !peerPub || !shared) return CryptoStatus::BadParam;
   return backend_->x25519Shared(priv, peerPub, shared);
+}
+
+CryptoStatus CryptoEngine::x25519GenerateKey(X25519Message& msg) {
+  return x25519GenerateKey(msg.privateKey, msg.publicKey);
+}
+
+CryptoStatus CryptoEngine::x25519Shared(X25519Message& msg) {
+  return x25519Shared(msg.privateKey, msg.peerPublicKey, msg.sharedSecret);
 }
 
 CryptoStatus CryptoEngine::rsaGenerateKeyPair(RsaKeyPair* key) {
@@ -366,6 +489,34 @@ CryptoStatus CryptoEngine::rsaReleaseKeyPair(RsaKeyPair* key) {
   CryptoStatus s = backend_->rsaReleaseKeyPair(key);
   if (key == &legacyRsa_) legacyRsa_.clear();
   return s;
+}
+
+CryptoStatus CryptoEngine::rsaImportKeyPair(RsaKeyPair* key,
+                                            const RsaPrivateKeyImport* material) {
+  NC_GUARD();
+  if (!key || !material) return CryptoStatus::BadParam;
+  key->clear();
+  return backend_->rsaImportKeyPair(key, material);
+}
+
+CryptoStatus CryptoEngine::rsaPssSign(const RsaKeyPair* key, const uint8_t* msg,
+                                      size_t msgLen, uint8_t sig[kRsa2048SigLen]) {
+  NC_GUARD();
+  return backend_->rsaPssSignWithKeyPair(key, msg, msgLen, sig);
+}
+
+CryptoStatus CryptoEngine::rsaPssVerify(const RsaKeyPair* key, const uint8_t* msg,
+                                        size_t msgLen,
+                                        const uint8_t sig[kRsa2048SigLen]) {
+  NC_GUARD();
+  return backend_->rsaPssVerifyWithKeyPair(key, msg, msgLen, sig);
+}
+
+CryptoStatus CryptoEngine::rsaPssVerifyWithPubKey(
+    const RsaPublicKey* pub, const uint8_t* msg, size_t msgLen,
+    const uint8_t sig[kRsa2048SigLen]) {
+  NC_GUARD();
+  return backend_->rsaPssVerifyWithPublicKey(pub, msg, msgLen, sig);
 }
 
 CryptoStatus CryptoEngine::rsa2048GenerateKey() {
@@ -499,6 +650,26 @@ CryptoStatus CryptoEngine::ed25519Verify(const uint8_t pub[kEd25519PubLen],
   if (!pub || !sig) return CryptoStatus::BadParam;
   if (msgLen != 0 && msg == nullptr) return CryptoStatus::BadParam;
   return backend_->ed25519Verify(pub, msg, msgLen, sig);
+}
+
+CryptoStatus CryptoEngine::ed25519GenerateKey(Ed25519Message& msg) {
+  return ed25519GenerateKey(msg.secret, msg.publicKey);
+}
+
+CryptoStatus CryptoEngine::ed25519Sign(Ed25519Message& msg) {
+  if (msg.useSeed)
+    return ed25519SignFromSeed(msg.seed, msg.payload, msg.payloadLen,
+                               msg.signature);
+  return ed25519Sign(msg.secret, msg.payload, msg.payloadLen, msg.signature);
+}
+
+CryptoStatus CryptoEngine::ed25519Verify(Ed25519Message& msg) {
+  return ed25519Verify(msg.publicKey, msg.payload, msg.payloadLen,
+                       msg.signature);
+}
+
+SelfTestReport CryptoEngine::runSelfTest() {
+  return runCryptoSelfTests(*this);
 }
 
 }  // namespace ncrypto

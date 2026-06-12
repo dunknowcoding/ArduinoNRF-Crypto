@@ -11,6 +11,16 @@ Crypto	KEYWORD1
 CryptoEngine	KEYWORD1
 CryptoBackend	KEYWORD1
 CryptoStatus	KEYWORD1
+AesGcmMessage	KEYWORD1
+AesCbcMessage	KEYWORD1
+AesCtrMessage	KEYWORD1
+ChaChaPolyMessage	KEYWORD1
+HmacMessage	KEYWORD1
+Sha256Message	KEYWORD1
+EcdsaMessage	KEYWORD1
+Ed25519Message	KEYWORD1
+RsaKeyPair	KEYWORD1
+RsaPublicKey	KEYWORD1
 CC310Backend	KEYWORD1
 OnChipBackend	KEYWORD1
 SoftSha256	KEYWORD1
@@ -47,8 +57,26 @@ x25519GenerateKey	KEYWORD2
 x25519Shared	KEYWORD2
 rsa2048GenerateKey	KEYWORD2
 rsaPkcs1Sha256Sign	KEYWORD2
-rsaPkcs1Sha256Verify	KEYWORD2
-cryptoStatusName	KEYWORD2
+aesGcmSeal	KEYWORD2
+aesGcmOpen	KEYWORD2
+aesCbcSeal	KEYWORD2
+aesCbcOpen	KEYWORD2
+aesCtrTransform	KEYWORD2
+chachaPolySeal	KEYWORD2
+chachaPolyOpen	KEYWORD2
+ecdsaSignMessage	KEYWORD2
+ecdsaVerifyMessage	KEYWORD2
+ed25519GenerateKey	KEYWORD2
+ed25519Sign	KEYWORD2
+ed25519Verify	KEYWORD2
+ed25519SignFromSeed	KEYWORD2
+rsaGenerate	KEYWORD2
+rsaSign	KEYWORD2
+rsaVerify	KEYWORD2
+rsaRelease	KEYWORD2
+reset	KEYWORD2
+cryptoOk	KEYWORD2
+NIUS_OK	KEYWORD2
 
 #######################################
 # Constants (LITERAL1)

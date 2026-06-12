@@ -1,12 +1,10 @@
 /*
-  EcdsaSignVerify - sign a message and verify the signature (NIST P-256).
+  EcdsaSignVerify - sign and verify with ECDSA P-256 (CC310).
 
-  Generates a key pair, hashes a message with SHA-256, signs the hash, and
-  verifies it with the public key. Then it tampers with the signature to show
-  that verification rejects it.
+  Uses the EcdsaMessage packet API (payload in, signature out). The low-level
+  ecdsaSign(priv, hash32, sig) API remains available for pre-hashed messages.
 
-  Requires the CC310/Oberon backend (ECDSA is Unsupported on the on-chip
-  fallback). Open the Serial Monitor at 115200 baud.
+  Open the Serial Monitor at 115200 baud.
 */
 #include <NiusCrypto.h>
 
@@ -20,39 +18,41 @@ static void printHex(const uint8_t* p, size_t n) {
 
 void setup() {
   Serial.begin(115200);
-  while (!Serial && millis() < 4000UL) {
-  }
+  while (!Serial && millis() < 4000UL) {}
+
+  Serial.println(F("=== EcdsaSignVerify ==="));
   Crypto.begin();
   Serial.print(F("backend: "));
   Serial.println(Crypto.backendName());
 
-  uint8_t priv[32], pub[64], sig[64], hash[32];
+  EcdsaMessage msg;
+  static const char kPayload[] = "Sign me with NiusCrypto";
+  msg.payload = reinterpret_cast<const uint8_t*>(kPayload);
+  msg.payloadLen = sizeof(kPayload) - 1;
 
-  CryptoStatus s = Crypto.ecdsaGenerateKey(priv, pub);
-  if (s != CryptoStatus::Ok) {
-    Serial.print(F("keygen: "));
-    Serial.println(cryptoStatusName(s));
+  if (!NIUS_OK(Crypto.ecdsaGenerateKey(msg))) {
+    Serial.println(F("keygen failed (need CC310)"));
     return;
   }
   Serial.print(F("public key: "));
-  printHex(pub, 64);
+  printHex(msg.publicKey, NIUS_P256_PUB);
 
-  const char* msg = "Sign me with NiusCrypto";
-  Crypto.sha256((const uint8_t*)msg, strlen(msg), hash);
-
-  if (Crypto.ecdsaSign(priv, hash, sig) != CryptoStatus::Ok) {
+  if (!NIUS_OK(Crypto.ecdsaSign(msg))) {
     Serial.println(F("sign failed"));
     return;
   }
   Serial.print(F("signature:  "));
-  printHex(sig, 64);
+  printHex(msg.signature, NIUS_P256_SIG);
 
   Serial.print(F("verify (valid):   "));
-  Serial.println(cryptoStatusName(Crypto.ecdsaVerify(pub, hash, sig)));
+  Serial.println(NIUS_OK(Crypto.ecdsaVerify(msg)) ? F("OK") : F("FAIL"));
 
-  sig[10] ^= 0x80;  // tamper
+  msg.signature[10] ^= 0x80;
   Serial.print(F("verify (tampered): "));
-  Serial.println(cryptoStatusName(Crypto.ecdsaVerify(pub, hash, sig)));
+  Serial.println(NIUS_OK(Crypto.ecdsaVerify(msg)) ? F("FAIL (should reject)")
+                                                  : F("OK (rejected)"));
+
+  Serial.println(F("RESULT: OK"));
 }
 
 void loop() {

@@ -32,3 +32,6 @@ Thumbs.db
 *.swp
 __pycache__/
 *.pyc
+
+# Local debug / test binaries (never commit)
+*.exe

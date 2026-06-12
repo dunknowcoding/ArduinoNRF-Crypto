@@ -6,7 +6,10 @@
 #include <NrfCrypto.h>       // NrfEcb (core)
 #include <NrfPeripherals.h>  // NrfRng (core)
 
+#include "SoftAes128.h"
+#include "SoftHkdf.h"
 #include "SoftSha256.h"
+#include "SoftSha512.h"
 
 namespace ncrypto {
 
@@ -29,6 +32,27 @@ bool OnChipBackend::begin() {
   return started_;
 }
 
+bool OnChipBackend::supportsCapability(CryptoCapability cap) const {
+  if (!started_) return false;
+  switch (cap) {
+    case CryptoCapability::Random:
+    case CryptoCapability::Sha256:
+    case CryptoCapability::Sha384:
+    case CryptoCapability::Sha512:
+    case CryptoCapability::HmacSha256:
+    case CryptoCapability::HkdfSha256:
+    case CryptoCapability::AesCbcEncrypt:
+    case CryptoCapability::AesCbcDecrypt:
+    case CryptoCapability::AesCtr:
+    case CryptoCapability::Sha256Stream:
+    case CryptoCapability::Sha384Stream:
+    case CryptoCapability::Sha512Stream:
+      return true;
+    default:
+      return false;
+  }
+}
+
 CryptoStatus OnChipBackend::randomBytes(uint8_t* buf, size_t len) {
   NrfRng::randomBytes(buf, len);
   return CryptoStatus::Ok;
@@ -37,6 +61,26 @@ CryptoStatus OnChipBackend::randomBytes(uint8_t* buf, size_t len) {
 CryptoStatus OnChipBackend::sha256(const uint8_t* in, size_t len,
                                    uint8_t out[kSha256Len]) {
   SoftSha256::hash(in, len, out);
+  return CryptoStatus::Ok;
+}
+
+CryptoStatus OnChipBackend::sha384(const uint8_t* in, size_t len,
+                                   uint8_t out[kSha384Len]) {
+  SoftSha512::hash384(in, len, out);
+  return CryptoStatus::Ok;
+}
+
+CryptoStatus OnChipBackend::sha512(const uint8_t* in, size_t len,
+                                   uint8_t out[kSha512Len]) {
+  SoftSha512::hash512(in, len, out);
+  return CryptoStatus::Ok;
+}
+
+CryptoStatus OnChipBackend::hkdfSha256(const uint8_t* ikm, size_t ikmLen,
+                                         const uint8_t* salt, size_t saltLen,
+                                         const uint8_t* info, size_t infoLen,
+                                         uint8_t* okm, size_t okmLen) {
+  SoftHkdf::hkdfSha256(ikm, ikmLen, salt, saltLen, info, infoLen, okm, okmLen);
   return CryptoStatus::Ok;
 }
 
@@ -52,6 +96,22 @@ CryptoStatus OnChipBackend::aes128CbcEncrypt(const uint8_t key[kAes128KeyLen],
     xorBlock(x, in + off, prev);          // P_i XOR C_{i-1}
     if (!NrfEcb::encrypt(key, x, out + off)) return CryptoStatus::InternalError;
     for (size_t i = 0; i < kAesBlockLen; ++i) prev[i] = out[off + i];  // C_i
+  }
+  return CryptoStatus::Ok;
+}
+
+CryptoStatus OnChipBackend::aes128CbcDecrypt(const uint8_t key[kAes128KeyLen],
+                                             const uint8_t iv[kAesBlockLen],
+                                             const uint8_t* in, uint8_t* out,
+                                             size_t len) {
+  uint8_t prev[kAesBlockLen];
+  for (size_t i = 0; i < kAesBlockLen; ++i) prev[i] = iv[i];
+
+  for (size_t off = 0; off < len; off += kAesBlockLen) {
+    uint8_t block[kAesBlockLen];
+    SoftAes128::decryptBlock(key, in + off, block);
+    xorBlock(out + off, block, prev);
+    for (size_t i = 0; i < kAesBlockLen; ++i) prev[i] = in[off + i];
   }
   return CryptoStatus::Ok;
 }

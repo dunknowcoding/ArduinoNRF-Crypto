@@ -27,6 +27,7 @@ class CC310Backend : public CryptoBackend {
   bool begin() override;
   void end() override;
   bool hardwareAccelerated() const override { return true; }
+  bool supportsCapability(CryptoCapability cap) const override;
 
   CryptoStatus randomBytes(uint8_t* buf, size_t len) override;
   CryptoStatus sha256(const uint8_t* in, size_t len,
@@ -108,6 +109,17 @@ class CC310Backend : public CryptoBackend {
   CryptoStatus rsaExportPublicKey(const RsaKeyPair* key,
                                   RsaPublicKey* out) override;
   CryptoStatus rsaReleaseKeyPair(RsaKeyPair* key) override;
+  CryptoStatus rsaImportKeyPair(RsaKeyPair* key,
+                                const RsaPrivateKeyImport* material) override;
+  CryptoStatus rsaPssSignWithKeyPair(const RsaKeyPair* key, const uint8_t* msg,
+                                     size_t msgLen,
+                                     uint8_t sig[kRsa2048SigLen]) override;
+  CryptoStatus rsaPssVerifyWithKeyPair(const RsaKeyPair* key, const uint8_t* msg,
+                                       size_t msgLen,
+                                       const uint8_t sig[kRsa2048SigLen]) override;
+  CryptoStatus rsaPssVerifyWithPublicKey(
+      const RsaPublicKey* pub, const uint8_t* msg, size_t msgLen,
+      const uint8_t sig[kRsa2048SigLen]) override;
 
   CryptoStatus rsa2048GenerateKey() override;
   CryptoStatus rsaPkcs1Sha256Sign(const uint8_t* msg, size_t msgLen,

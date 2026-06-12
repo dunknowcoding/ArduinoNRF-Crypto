@@ -88,3 +88,5 @@ mix fails to link or faults at runtime.
 
 Delete `src/cortex-m4/` and `src/cc310/`, and remove the `precompiled` /
 `ldflags` lines from `library.properties`. The library returns to on-chip-only.
+OnChip supports SHA-256, HMAC (software fallback), AES-CBC encrypt, and AES-CTR
+only — see [API_REFERENCE.md §4](API_REFERENCE.md#4-backend-capability-matrix).

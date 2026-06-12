@@ -21,6 +21,7 @@
 #define NIUSCRYPTO_ONCHIPBACKEND_H
 
 #include "../crypto/CryptoBackend.h"
+#include "../crypto/CryptoCapability.h"
 
 namespace ncrypto {
 
@@ -41,7 +42,20 @@ class OnChipBackend : public CryptoBackend {
   CryptoStatus aes128Ctr(const uint8_t key[kAes128KeyLen],
                          const uint8_t iv[kAesBlockLen],
                          const uint8_t* in, uint8_t* out, size_t len) override;
-  // aes128CbcDecrypt / GCM / ECC fall through to the base "Unsupported".
+  CryptoStatus aes128CbcDecrypt(const uint8_t key[kAes128KeyLen],
+                                const uint8_t iv[kAesBlockLen],
+                                const uint8_t* in, uint8_t* out,
+                                size_t len) override;
+  CryptoStatus sha384(const uint8_t* in, size_t len,
+                      uint8_t out[kSha384Len]) override;
+  CryptoStatus sha512(const uint8_t* in, size_t len,
+                      uint8_t out[kSha512Len]) override;
+  CryptoStatus hkdfSha256(const uint8_t* ikm, size_t ikmLen,
+                          const uint8_t* salt, size_t saltLen,
+                          const uint8_t* info, size_t infoLen,
+                          uint8_t* okm, size_t okmLen) override;
+  bool supportsCapability(CryptoCapability cap) const override;
+  // GCM / ECC fall through to the base "Unsupported".
 
  private:
   bool started_ = false;

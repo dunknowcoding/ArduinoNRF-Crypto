@@ -53,6 +53,19 @@ CC310 backend is absent or returns `Unsupported`, `CryptoEngine` falls back to
 `SoftSha256::hmacSha256()` so the on-chip path still works without hardware
 HMAC.
 
+## Public API
+
+The sketch-facing surface is documented in **[API_REFERENCE.md](API_REFERENCE.md)**
+(complete method list, packet structs, backend limits, and examples). Source
+headers mirror that layout:
+
+| Header | Role |
+|--------|------|
+| `NiusCrypto.h` | Umbrella include + `NIUS_*` macros + global `Crypto` |
+| `crypto/CryptoEngine.h` | All `Crypto.*` methods |
+| `crypto/CryptoPackets.h` | `AesGcmMessage`, `EcdsaMessage`, … |
+| `crypto/CryptoTypes.h` | `CryptoStatus`, `RsaKeyPair`, size constants |
+
 ## Backend selection
 
 `CryptoEngine::begin(Prefer)`:

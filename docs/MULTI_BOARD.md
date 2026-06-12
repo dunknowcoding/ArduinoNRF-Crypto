@@ -1,7 +1,7 @@
 # Multi-board support
 
-NiusCrypto targets all `nrf52` boards in the ArduinoNRF package. Local
-compile checks should cover at least:
+NiusCrypto targets all `nrf52` boards in the ArduinoNRF package. Public API
+details: [API_REFERENCE.md](API_REFERENCE.md). Local compile checks should cover at least:
 
 | FQBN | Role |
 |------|------|
@@ -23,7 +23,7 @@ CC310 hardware tests require vendored blobs on the build machine (`setup_vendore
 
 | Board | CryptoSelfTest | CC310Smoke | Notes |
 |-------|----------------|------------|-------|
-| ProMicro nRF52840 (board1) | **20/20 PASS** | **BleCryptoStress OK** | MBR-only @ `0x1000`, COM18 |
+| ProMicro nRF52840 (board1) | **23/23 PASS** | **BleCryptoStress OK** | MBR-only @ `0x1000`, COM18 |
 | Seeed XIAO nRF52840 | compile-only | compile-only | Awaiting HW in lab |
 
 When a second board is available, run the local verify script with an adjusted FQBN:

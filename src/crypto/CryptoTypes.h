@@ -80,6 +80,26 @@ struct RsaKeyPair {
     pub.modLen = 0;
     pub.expLen = 0;
   }
+  /** Same as clear(); matches packet struct reset() naming. */
+  void reset() { clear(); }
+};
+
+/** Raw RSA-2048 private key material for rsaImportKeyPair (CC310 only). */
+struct RsaPrivateKeyImport {
+  uint8_t modulus[kRsa2048ModLen] = {};
+  uint8_t privateExponent[kRsa2048ModLen] = {};
+  uint8_t publicExponent[kRsaMaxExpLen] = {};
+  uint16_t modLen = 0;
+  uint16_t privExpLen = 0;
+  uint16_t pubExpLen = 0;
+};
+
+/** Result of CryptoEngine::runSelfTest(). */
+struct SelfTestReport {
+  uint16_t passed = 0;
+  uint16_t failed = 0;
+  uint16_t skipped = 0;
+  bool ok() const { return failed == 0; }
 };
 
 // Human-readable name for a status, handy in sketches and tests.

@@ -23,6 +23,7 @@
 #define NIUSCRYPTO_CRYPTOBACKEND_H
 
 #include "CryptoTypes.h"
+#include "CryptoCapability.h"
 
 namespace ncrypto {
 
@@ -43,6 +44,12 @@ class CryptoBackend {
 
   /** True if the work is done by a dedicated hardware accelerator. */
   virtual bool hardwareAccelerated() const = 0;
+
+  /** True when this backend implements the given capability on this build. */
+  virtual bool supportsCapability(CryptoCapability cap) const {
+    (void)cap;
+    return false;
+  }
 
   // ---- random ----
 
@@ -222,6 +229,34 @@ class CryptoBackend {
     if (!key || !key->valid()) return CryptoStatus::BadParam;
     key->clear();
     return CryptoStatus::Ok;
+  }
+
+  /** Load an existing RSA-2048 private key into a backend slot (CC310 only). */
+  virtual CryptoStatus rsaImportKeyPair(RsaKeyPair* key,
+                                        const RsaPrivateKeyImport* material) {
+    (void)key; (void)material;
+    return CryptoStatus::Unsupported;
+  }
+
+  virtual CryptoStatus rsaPssSignWithKeyPair(const RsaKeyPair* key,
+                                             const uint8_t* msg, size_t msgLen,
+                                             uint8_t sig[kRsa2048SigLen]) {
+    (void)key; (void)msg; (void)msgLen; (void)sig;
+    return CryptoStatus::Unsupported;
+  }
+
+  virtual CryptoStatus rsaPssVerifyWithKeyPair(const RsaKeyPair* key,
+                                               const uint8_t* msg, size_t msgLen,
+                                               const uint8_t sig[kRsa2048SigLen]) {
+    (void)key; (void)msg; (void)msgLen; (void)sig;
+    return CryptoStatus::Unsupported;
+  }
+
+  virtual CryptoStatus rsaPssVerifyWithPublicKey(
+      const RsaPublicKey* pub, const uint8_t* msg, size_t msgLen,
+      const uint8_t sig[kRsa2048SigLen]) {
+    (void)pub; (void)msg; (void)msgLen; (void)sig;
+    return CryptoStatus::Unsupported;
   }
 
   virtual CryptoStatus rsa2048GenerateKey() {

@@ -180,3 +180,9 @@ deep in the GHASH `gf32_mul` routine, even though the code is correct. A full
 factory reflash (step 4) restored the SoftDevice and every primitive — including
 AES-GCM — then passed. If you see early crashes or no USB, reflash the
 bootloader image before debugging the sketch.
+
+## API and self-test
+
+After bring-up, flash `examples/CryptoSelfTest` and expect `23 passed` with
+`backend: CC310` when blobs are vendored. Method details:
+[API_REFERENCE.md](API_REFERENCE.md).

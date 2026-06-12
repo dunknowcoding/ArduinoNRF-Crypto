@@ -17,8 +17,12 @@
 #define NIUSCRYPTO_CRYPTOENGINE_H
 
 #include "CryptoBackend.h"
+#include "CryptoCapability.h"
+#include "CryptoBackendError.h"
+#include "CryptoHash.h"
 #include "CryptoTypes.h"
 #include "CryptoPackets.h"
+#include "CryptoUtil.h"
 
 namespace ncrypto {
 
@@ -49,6 +53,26 @@ class CryptoEngine {
   /** True if the active backend is a hardware accelerator (CC310). */
   bool isHardwareAccelerated() const;
 
+  /** True when the active backend implements cap (false if not started). */
+  bool supports(CryptoCapability cap) const;
+
+  /** Last backend error code (e.g. CRYS return value). Zero if none. */
+  int32_t lastBackendError() const { return ncrypto::lastBackendError(); }
+
+  // ---- utilities ----
+  static bool secureEqual(const uint8_t* a, const uint8_t* b, size_t len) {
+    return ncrypto::secureEqual(a, b, len);
+  }
+  static void wipe(volatile uint8_t* buf, size_t len) { ncrypto::wipe(buf, len); }
+  static size_t pkcs7Pad(const uint8_t* plain, size_t plainLen, uint8_t* out,
+                         size_t outCap, size_t blockSize = kAesBlockLen) {
+    return ncrypto::pkcs7Pad(plain, plainLen, out, outCap, blockSize);
+  }
+  static size_t pkcs7Unpad(uint8_t* buf, size_t len,
+                           size_t blockSize = kAesBlockLen) {
+    return ncrypto::pkcs7Unpad(buf, len, blockSize);
+  }
+
   // ---- random ----
   CryptoStatus random(uint8_t* buf, size_t len);
 
@@ -57,7 +81,17 @@ class CryptoEngine {
   CryptoStatus sha384(const uint8_t* in, size_t len, uint8_t out[kSha384Len]);
   CryptoStatus sha512(const uint8_t* in, size_t len, uint8_t out[kSha512Len]);
 
-  /** HKDF-SHA-256 (RFC 5869). CC310 only; salt/info may be nullptr when len is 0. */
+  CryptoStatus sha256Begin(Sha256Context& ctx);
+  CryptoStatus sha256Update(Sha256Context& ctx, const uint8_t* data, size_t len);
+  CryptoStatus sha256Finish(Sha256Context& ctx, uint8_t out[kSha256Len]);
+  CryptoStatus sha384Begin(Sha384Context& ctx);
+  CryptoStatus sha384Update(Sha384Context& ctx, const uint8_t* data, size_t len);
+  CryptoStatus sha384Finish(Sha384Context& ctx, uint8_t out[kSha384Len]);
+  CryptoStatus sha512Begin(Sha512Context& ctx);
+  CryptoStatus sha512Update(Sha512Context& ctx, const uint8_t* data, size_t len);
+  CryptoStatus sha512Finish(Sha512Context& ctx, uint8_t out[kSha512Len]);
+
+  /** HKDF-SHA-256 (RFC 5869). Software fallback on OnChip when needed. */
   CryptoStatus hkdfSha256(const uint8_t* ikm, size_t ikmLen,
                           const uint8_t* salt, size_t saltLen,
                           const uint8_t* info, size_t infoLen,
@@ -121,6 +155,9 @@ class CryptoEngine {
   /** Convenience wrappers that fill HmacMessage.mac / Sha256Message.digest. */
   CryptoStatus hmacSha256(HmacMessage& msg);
   CryptoStatus sha256(Sha256Message& msg);
+  CryptoStatus sha384(Sha384Message& msg);
+  CryptoStatus sha512(Sha512Message& msg);
+  CryptoStatus hkdfSha256(HkdfMessage& msg);
 
   // ---- ECDSA / ECDH P-256 (CC310 only) ----
   CryptoStatus ecdsaGenerateKey(uint8_t priv[kP256PrivLen],
@@ -135,12 +172,22 @@ class CryptoEngine {
                           const uint8_t peerPub[kP256PubLen],
                           uint8_t shared[kP256SharedLen]);
 
+  /** Fill privateKey and publicKey inside msg (CC310 only). */
+  CryptoStatus ecdsaGenerateKey(EcdsaMessage& msg);
+  /** Sign msg.payload (SHA-256 + ECDSA) or msg.hashOverride (advanced). */
+  CryptoStatus ecdsaSign(EcdsaMessage& msg);
+  /** Verify msg.signature against msg.payload or msg.hashOverride. */
+  CryptoStatus ecdsaVerify(EcdsaMessage& msg);
+
   /** X25519 (Curve25519 ECDH). CC310 only; 32-byte keys, LE byte order. */
   CryptoStatus x25519GenerateKey(uint8_t priv[kX25519KeyLen],
                                  uint8_t pub[kX25519KeyLen]);
   CryptoStatus x25519Shared(const uint8_t priv[kX25519KeyLen],
                            const uint8_t peerPub[kX25519KeyLen],
                            uint8_t shared[kX25519KeyLen]);
+
+  CryptoStatus x25519GenerateKey(X25519Message& msg);
+  CryptoStatus x25519Shared(X25519Message& msg);
 
   // ---- RSA-2048 (explicit key handle; CC310 only) ----
   CryptoStatus rsaGenerateKeyPair(RsaKeyPair* key);
@@ -160,14 +207,31 @@ class CryptoEngine {
    */
   CryptoStatus rsaReleaseKeyPair(RsaKeyPair* key);
 
-  /** @deprecated Use rsaGenerateKeyPair + rsaSignWithKeyPair instead. */
+  /** Import RSA-2048 private key (modulus + exponents) into a backend slot. */
+  CryptoStatus rsaImportKeyPair(RsaKeyPair* key,
+                                const RsaPrivateKeyImport* material);
+
+  CryptoStatus rsaPssSign(const RsaKeyPair* key, const uint8_t* msg,
+                          size_t msgLen, uint8_t sig[kRsa2048SigLen]);
+  CryptoStatus rsaPssVerify(const RsaKeyPair* key, const uint8_t* msg,
+                            size_t msgLen, const uint8_t sig[kRsa2048SigLen]);
+  CryptoStatus rsaPssVerifyWithPubKey(const RsaPublicKey* pub,
+                                      const uint8_t* msg, size_t msgLen,
+                                      const uint8_t sig[kRsa2048SigLen]);
+
+  /** @deprecated Prefer rsaGenerateKeyPair + rsaSignWithKeyPair instead. */
+  [[deprecated("Use rsaGenerateKeyPair() with an explicit RsaKeyPair handle")]]
   CryptoStatus rsa2048GenerateKey();
+  [[deprecated("Use rsaSign() with an explicit RsaKeyPair handle")]]
   CryptoStatus rsaPkcs1Sha256Sign(const uint8_t* msg, size_t msgLen,
                                   uint8_t sig[kRsa2048SigLen]);
+  [[deprecated("Use rsaVerify() with an explicit RsaKeyPair handle")]]
   CryptoStatus rsaPkcs1Sha256Verify(const uint8_t* msg, size_t msgLen,
                                     const uint8_t sig[kRsa2048SigLen]);
+  [[deprecated("Use rsaExportPublic() with an explicit RsaKeyPair handle")]]
   CryptoStatus rsa2048ExportPubKey(uint8_t mod[kRsa2048ModLen], uint16_t* modLen,
                                    uint8_t* pubExp, uint16_t* pubExpLen);
+  [[deprecated("Use rsaVerifyWithPubKey() instead")]]
   CryptoStatus rsaPkcs1Sha256VerifyPub(const uint8_t* mod, uint16_t modLen,
                                         const uint8_t* pubExp, uint16_t pubExpLen,
                                         const uint8_t* msg, size_t msgLen,
@@ -192,6 +256,9 @@ class CryptoEngine {
     return rsaExportPublicKey(key, out);
   }
   inline CryptoStatus rsaRelease(RsaKeyPair* key) { return rsaReleaseKeyPair(key); }
+  inline CryptoStatus rsaImport(RsaKeyPair* key, const RsaPrivateKeyImport* mat) {
+    return rsaImportKeyPair(key, mat);
+  }
 
   /** Ed25519 sign/verify (CC310). secret is 64 bytes (CRYS seed||pub layout). */
   CryptoStatus ed25519GenerateKey(uint8_t secret[kEd25519SecLen],
@@ -205,6 +272,13 @@ class CryptoEngine {
   CryptoStatus ed25519Verify(const uint8_t pub[kEd25519PubLen],
                              const uint8_t* msg, size_t msgLen,
                              const uint8_t sig[kEd25519SigLen]);
+
+  /** Fill secret[] and publicKey[] inside msg (CC310 only). */
+  CryptoStatus ed25519GenerateKey(Ed25519Message& msg);
+  /** Sign msg.payload using secret[] or seed[] when msg.useSeed is true. */
+  CryptoStatus ed25519Sign(Ed25519Message& msg);
+  /** Verify msg.signature against msg.publicKey and msg.payload. */
+  CryptoStatus ed25519Verify(Ed25519Message& msg);
 
   /** Hash message with SHA-256 then ECDSA P-256 sign (CC310 only). */
   CryptoStatus ecdsaSignMessage(const uint8_t priv[kP256PrivLen],
@@ -239,6 +313,9 @@ class CryptoEngine {
       size_t len, const uint8_t tag[kChaPolyTagLen]) {
     return chachaPolyDecrypt(key, nonce, aad, aadLen, in, out, len, tag);
   }
+
+  /** Run built-in known-answer tests (same coverage as examples/CryptoSelfTest). */
+  SelfTestReport runSelfTest();
 
   /** The active backend, or nullptr if not started (advanced use). */
   CryptoBackend* backend() const { return backend_; }

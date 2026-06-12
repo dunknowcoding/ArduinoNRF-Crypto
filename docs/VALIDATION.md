@@ -7,21 +7,33 @@ the correct link address.
 
 **Seeed XIAO nRF52840** is compile-only locally until hardware is available.
 
-## Verified (board1, CC310 backend) — v0.4.0
+## Verified (board1, CC310 backend)
+
+### v0.6.0 (latest)
 
 | Test | Result | Notes |
 |------|--------|-------|
-| `examples/CryptoSelfTest` | **20/20 PASS** | incl. Ed25519, RSA export/VerifyPub, X25519, ChaCha20-Poly1305 |
-| `examples/BleCryptoStress` | **RESULT: OK** | NimBLE + 3000× SHA-256/HMAC; NUS write/onReceive when connected |
-| `SdCryptoSmoke` | **PASS** | MBR-only @ `0x1000` |
-| `CC310Smoke` (shim) | **PASS** | incl. SHA-512 KAT |
+| `examples/CryptoSelfTest` | **23/23 PASS** | incl. `supports()`, streaming hash, `runSelfTest()`, RSA import/PSS, OnChip fallbacks |
+| `examples/BleCryptoStress` | **RESULT: OK** | NimBLE + 3000× SHA-256/HMAC |
+| `SdCryptoSmoke` | **RESULT: OK** | MBR-only @ `0x1000` |
+| `CC310Smoke` (shim) | **RESULT: OK** | incl. SHA-512 KAT |
 
 Expected `CryptoSelfTest` tail:
 
 ```
-summary: 20 passed, 0 failed, 0 skipped
+summary: 23 passed, 0 failed, 0 skipped
 RESULT: OK
 ```
+
+### Earlier releases
+
+| Version | CryptoSelfTest | Notes |
+|---------|----------------|-------|
+| v0.5.2 | 23/23 PASS | `EcdsaMessage` / `Ed25519Message`, `reset()` |
+| v0.5.1 | 21/21 PASS | packet structs, `rsaRelease` |
+| v0.4.0 | 20/20 PASS | Ed25519, RSA export/VerifyPub |
+
+See [API_REFERENCE.md](API_REFERENCE.md) for the APIs exercised by each test.
 
 ## Local bring-up (`vendor/hwverify/` — not in git)
 

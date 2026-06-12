@@ -1,9 +1,8 @@
 /*
   HkdfSha256 - derive key material with HKDF-SHA-256 (RFC 5869).
 
-  Uses test case 1 (L=32) on startup so you can compare against the known OKM
-  without typing anything. Requires the CC310 backend (OnChip returns
-  Unsupported).
+  Uses HkdfMessage packet API and RFC 5869 test case 1 (L=32). Works on CC310
+  (hardware) and OnChip (software fallback).
 
   Open the Serial Monitor at 115200 baud.
 */
@@ -26,7 +25,9 @@ void setup() {
     return;
   }
   Serial.print(F("backend: "));
-  Serial.println(Crypto.backendName());
+  Serial.print(Crypto.backendName());
+  Serial.print(F("  hkdf supported: "));
+  Serial.println(Crypto.supports(CryptoCapability::HkdfSha256) ? F("yes") : F("no"));
 
   static const uint8_t kIkm[22] = {
       0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b,
@@ -42,20 +43,29 @@ void setup() {
       0x5a, 0x4c, 0x5d, 0xb0, 0x2d, 0x56, 0xec, 0xc4, 0xc5, 0xbf};
 
   uint8_t okm[32];
-  CryptoStatus st = Crypto.hkdfSha256(kIkm, sizeof(kIkm), kSalt, sizeof(kSalt),
-                                      kInfo, sizeof(kInfo), okm, sizeof(okm));
+  HkdfMessage hkdf;
+  hkdf.ikm = kIkm;
+  hkdf.ikmLen = sizeof(kIkm);
+  hkdf.salt = kSalt;
+  hkdf.saltLen = sizeof(kSalt);
+  hkdf.info = kInfo;
+  hkdf.infoLen = sizeof(kInfo);
+  hkdf.okm = okm;
+  hkdf.okmLen = sizeof(okm);
+
+  CryptoStatus st = Crypto.hkdfSha256(hkdf);
   if (st == CryptoStatus::Ok) {
     Serial.print(F("HKDF OKM: "));
     printHex(okm, sizeof(okm));
     Serial.println();
-    bool match = true;
-    for (size_t i = 0; i < sizeof(okm); ++i) match &= (okm[i] == kExpect[i]);
     Serial.print(F("RFC 5869 #1 match: "));
-    Serial.println(match ? F("PASS") : F("FAIL"));
+    Serial.println(Crypto.secureEqual(okm, kExpect, sizeof(okm)) ? F("PASS")
+                                                                 : F("FAIL"));
   } else {
     Serial.print(F("hkdfSha256() "));
     Serial.println(cryptoStatusName(st));
   }
+  hkdf.reset();
 }
 
 void loop() {

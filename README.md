@@ -80,7 +80,8 @@ PASS  SHA-512("abc")                        PASS  random() (TRNG, fresh each run
 PASS  HKDF-SHA-256 (RFC 5869 #1)            PASS  AES-128-GCM encrypt + decrypt+auth
 PASS  HMAC-SHA-256 (RFC 4231 #2)            PASS  ChaCha20-Poly1305 (RFC 8439 A.5)
 PASS  AES-128-CBC/CTR/GCM                    PASS  X25519 + RSA + Ed25519
-summary: 20 passed, 0 failed, 0 skipped     RESULT: OK
+PASS  ECDSA/Ed25519 packet API (EcdsaMessage / Ed25519Message)
+summary: 23 passed, 0 failed, 0 skipped     RESULT: OK
 ```
 
 ## Installing the library
@@ -171,94 +172,27 @@ After cloning, run the two vendoring steps in [Enabling the CC310 backend](#enab
 
 ## API
 
-All calls return a `CryptoStatus` (`Ok`, `Unsupported`, `AuthFailed`, …).
-Use `NIUS_OK(...)` or `cryptoOk(...)` for quick checks; `cryptoStatusName()`
-turns a status into a string.
+**Full reference:** [docs/API_REFERENCE.md](docs/API_REFERENCE.md) — every public
+method, packet struct, parameter, backend limitation, and example from basic
+through advanced usage.
 
-### Buffer sizes
+Quick summary:
 
-Declare stack buffers with the `NIUS_*_BYTES` macros from `<NiusCrypto.h>`
-(e.g. `uint8_t hash[NIUS_SHA256_BYTES]`, `uint8_t sig[NIUS_RSA2048_SIG]`).
+- Include `<NiusCrypto.h>` and call `Crypto.begin()`.
+- Every operation returns `CryptoStatus`; use `NIUS_OK(...)` or `cryptoOk(...)`.
+- Declare buffers with `NIUS_*` size macros (e.g. `uint8_t hash[NIUS_SHA256_BYTES]`).
+- **Packet structs** (`AesGcmMessage`, `EcdsaMessage`, …) group fields for
+  seal/open and sign/verify; call `reset()` before reuse.
+- **Low-level pointer APIs** remain for advanced control (pre-hashed ECDSA,
+  raw Ed25519 secret bytes, separate AES parameters, …).
+- **`Crypto.supports(CryptoCapability::...)`** probes what the active backend can do.
+- **`Crypto.runSelfTest()`** runs built-in KAT tests (same as `CryptoSelfTest` sketch).
+- ECC, RSA, GCM, ChaCha require **CC310**; OnChip adds SHA-256/384/512, HMAC, HKDF,
+  AES-CBC encrypt+decrypt, and AES-CTR (see [ONCHIP_BUILD.md](docs/ONCHIP_BUILD.md)).
 
-### Core
-
-```cpp
-bool        Crypto.begin(Prefer = Auto);
-const char* Crypto.backendName();
-bool        Crypto.isHardwareAccelerated();
-
-CryptoStatus Crypto.random(uint8_t* buf, size_t len);
-CryptoStatus Crypto.sha256(in, len, out);   // out[NIUS_SHA256_BYTES]
-CryptoStatus Crypto.hmacSha256(key, keyLen, msg, msgLen, out);
-CryptoStatus Crypto.hkdfSha256(ikm, ikmLen, salt, saltLen, info, infoLen, okm, okmLen);
-CryptoStatus Crypto.aesCbcEncrypt / aesCbcDecrypt / aesCtr / aesGcm* / chachaPoly*;
-CryptoStatus Crypto.chacha20Poly1305Encrypt(...);  // alias
-```
-
-### Elliptic curve (CC310 only)
-
-```cpp
-CryptoStatus Crypto.ecdsaGenerateKey(priv, pub);
-CryptoStatus Crypto.ecdsaSignMessage(priv, msg, msgLen, sig);   // SHA-256 + sign
-CryptoStatus Crypto.ecdsaVerifyMessage(pub, msg, msgLen, sig);
-CryptoStatus Crypto.ecdhShared(priv, peerPub, shared);
-
-CryptoStatus Crypto.x25519GenerateKey(priv, pub);
-CryptoStatus Crypto.x25519Shared(priv, peerPub, shared);
-
-CryptoStatus Crypto.ed25519GenerateKey(secret64, pub32);
-CryptoStatus Crypto.ed25519SignFromSeed(seed32, msg, msgLen, sig64);
-CryptoStatus Crypto.ed25519Sign / ed25519Verify;
-```
-
-`ed25519` **secret** is 64 bytes on CC310 (seed ‖ public key). Use
-`ed25519SignFromSeed()` when you only have a 32-byte seed.
-
-### RSA-2048 (CC310 only) — explicit key handle (v0.5+)
-
-```cpp
-RsaKeyPair key;
-Crypto.rsaGenerate(&key);                    // or rsaGenerateKeyPair(&key)
-Crypto.rsaSign(&key, msg, msgLen, sig256);
-Crypto.rsaVerify(&key, msg, msgLen, sig256);
-Crypto.rsaVerifyWithPubKey(&key.pub, msg, msgLen, sig256);
-
-RsaPublicKey exported;
-Crypto.rsaExportPublic(&key, &exported);
-Crypto.rsaRelease(&key);                     // free backend slot (max 2 live keys)
-```
-
-### Packet structs (v0.5.1+)
-
-Group related pointers and lengths into one struct; use **seal** (encrypt/authenticate)
-and **open** (decrypt/verify) names for AEAD:
-
-```cpp
-AesGcmMessage gcm;
-memcpy(gcm.key, key, NIUS_AES128_KEY);
-memcpy(gcm.nonce, iv, NIUS_GCM_IV);
-gcm.input = plaintext;  gcm.inputLen = len;  gcm.output = ciphertext;
-Crypto.aesGcmSeal(gcm);                          // writes gcm.authenticationTag
-
-gcm.input = ciphertext;  gcm.output = recovered;
-Crypto.aesGcmOpen(gcm);                          // AuthFailed if tag mismatch
-
-ChaChaPolyMessage chacha;   // same pattern
-Sha256Message hash;  hash.data = msg;  hash.dataLen = len;  Crypto.sha256(hash);
-HmacMessage mac;       /* fill key, message */  Crypto.hmacSha256(mac);
-AesCbcMessage cbc;   Crypto.aesCbcSeal(cbc) / aesCbcOpen(cbc);
-AesCtrMessage ctr;   Crypto.aesCtrTransform(ctr);
-```
-
-Legacy implicit key (slot 0, still supported):
-
-```cpp
-Crypto.rsa2048GenerateKey();
-Crypto.rsaPkcs1Sha256Sign(msg, msgLen, sig256);
-```
-
-P-256 public keys are 64 bytes (`X‖Y`), signatures 64 bytes (`R‖S`), private
-scalars 32 bytes, all big-endian.
+See the [backend capability table](#backends) above and
+[API_REFERENCE.md §4–5](docs/API_REFERENCE.md#4-backend-capability-matrix) for
+details.
 
 ## Examples
 
@@ -278,10 +212,14 @@ scalars 32 bytes, all big-endian.
 | `Ed25519SignVerify` | Ed25519 sign/verify + sign-from-seed |
 | `RsaSignExport` | RSA-2048 with explicit `RsaKeyPair` handle |
 | `EcdhKeyExchange` | P-256 shared-secret agreement between two parties |
+| `X25519KeyExchange` | X25519 key agreement via `X25519Message` packet API |
+| `KeyStorage` | Persist/load a P-256 key pair in flash (OnChip-friendly demo) |
 
 ## Documentation
 
+- **[docs/API_REFERENCE.md](docs/API_REFERENCE.md)** — complete API manual (basic → advanced, limits, examples)
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — layers, backend selection, ABI notes
+- [docs/ONCHIP_BUILD.md](docs/ONCHIP_BUILD.md) — Library Manager / no-blob builds
 - [docs/ROADMAP.md](docs/ROADMAP.md) — shipped vs planned CRYS capabilities
 - [docs/SOFTDEVICE_COEXISTENCE.md](docs/SOFTDEVICE_COEXISTENCE.md) — CC310 + S140 notes
 - [docs/MULTI_BOARD.md](docs/MULTI_BOARD.md) — multi-board compile notes and HW status

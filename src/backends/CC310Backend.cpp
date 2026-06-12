@@ -59,6 +59,8 @@
 #include "../cc310/ocrypto_aes_gcm.h"
 #include "../cc310/ocrypto_chacha20_poly1305.h"
 #include "../cc310/ocrypto_sha384.h"
+#include "../crypto/CryptoBackendError.h"
+#include "../crypto/CryptoCapability.h"
 #endif
 
 namespace ncrypto {
@@ -87,6 +89,12 @@ const SaSiRndGenerateVectWorkFunc_t kRndFunc =
 inline const CRYS_ECPKI_Domain_t* p256() {
   return CRYS_ECPKI_GetEcDomain(CRYS_ECPKI_DomainID_secp256r1);
 }
+
+inline void recordCrys(CRYSError_t e) {
+  if (e != CRYS_OK) detail::setBackendError(static_cast<int32_t>(e));
+}
+
+static constexpr uint16_t kRsaPssSaltLen = kSha256Len;
 
 static CRYS_RSAPrivUserContext_t g_rsaSignCtx;
 static CRYS_RSAPubUserContext_t g_rsaVerifyCtx;
@@ -578,6 +586,32 @@ CryptoStatus CC310Backend::x25519Shared(const uint8_t priv[kX25519KeyLen],
   return CryptoStatus::Ok;
 }
 
+bool CC310Backend::supportsCapability(CryptoCapability cap) const {
+  if (!started_) return false;
+  switch (cap) {
+    case CryptoCapability::Random:
+    case CryptoCapability::Sha256:
+    case CryptoCapability::Sha384:
+    case CryptoCapability::Sha512:
+    case CryptoCapability::HmacSha256:
+    case CryptoCapability::HkdfSha256:
+    case CryptoCapability::AesCbcEncrypt:
+    case CryptoCapability::AesCbcDecrypt:
+    case CryptoCapability::AesCtr:
+    case CryptoCapability::AesGcm:
+    case CryptoCapability::ChaChaPoly:
+    case CryptoCapability::Ecdsa:
+    case CryptoCapability::Ecdh:
+    case CryptoCapability::X25519:
+    case CryptoCapability::Ed25519:
+    case CryptoCapability::RsaPkcs1:
+    case CryptoCapability::RsaPss:
+      return true;
+    default:
+      return false;
+  }
+}
+
 CryptoStatus CC310Backend::rsaGenerateKeyPair(RsaKeyPair* key) {
   if (!started_) return CryptoStatus::NotStarted;
   if (!key) return CryptoStatus::BadParam;
@@ -611,6 +645,111 @@ CryptoStatus CC310Backend::rsaSignWithKeyPair(const RsaKeyPair* key,
                              &sigLen) != CRYS_OK)
     return CryptoStatus::InternalError;
   return CryptoStatus::Ok;
+}
+
+CryptoStatus CC310Backend::rsaImportKeyPair(RsaKeyPair* key,
+                                              const RsaPrivateKeyImport* material) {
+  if (!started_) return CryptoStatus::NotStarted;
+  if (!key || !material || material->modLen == 0 || material->privExpLen == 0 ||
+      material->pubExpLen == 0)
+    return CryptoStatus::BadParam;
+  if (material->modLen > kRsa2048ModLen ||
+      material->privExpLen > kRsa2048ModLen ||
+      material->pubExpLen > kRsaMaxExpLen)
+    return CryptoStatus::BadParam;
+  int slot = rsaAllocSlot();
+  if (slot < 0) return CryptoStatus::InternalError;
+  g_rsaSlots[slot].ready = false;
+  uint8_t modRam[kRsa2048ModLen];
+  uint8_t privRam[kRsa2048ModLen];
+  uint8_t expRam[kRsaMaxExpLen];
+  memcpy(modRam, material->modulus, material->modLen);
+  memcpy(privRam, material->privateExponent, material->privExpLen);
+  memcpy(expRam, material->publicExponent, material->pubExpLen);
+  CRYSError_t e1 = CRYS_RSA_Build_PrivKey(
+      &g_rsaSlots[slot].priv, privRam, material->privExpLen, expRam,
+      material->pubExpLen, modRam, material->modLen);
+  CRYSError_t e2 = CRYS_RSA_Build_PubKey(&g_rsaSlots[slot].pub, expRam,
+                                         material->pubExpLen, modRam,
+                                         material->modLen);
+  if (e1 != CRYS_OK || e2 != CRYS_OK) {
+    recordCrys(e1 != CRYS_OK ? e1 : e2);
+    rsaFreeSlot(static_cast<uint8_t>(slot));
+    return CryptoStatus::BadParam;
+  }
+  g_rsaSlots[slot].ready = true;
+  key->slot = static_cast<uint8_t>(slot);
+  return rsaExportSlotPub(key->slot, &key->pub);
+}
+
+CryptoStatus CC310Backend::rsaPssSignWithKeyPair(const RsaKeyPair* key,
+                                                 const uint8_t* msg, size_t msgLen,
+                                                 uint8_t sig[kRsa2048SigLen]) {
+  if (!started_) return CryptoStatus::NotStarted;
+  if (!key || !sig || !rsaSlotValid(key->slot)) return CryptoStatus::BadParam;
+  uint8_t* bounce = nullptr;
+  CryptoStatus bs = bounceMsg(msg, msgLen, &bounce);
+  if (bs != CryptoStatus::Ok) return bs;
+  uint16_t sigLen = kRsa2048SigLen;
+  CRYSError_t e = CRYS_RSA_PSS_Sign(
+      &g_rndState, kRndFunc, &g_rsaSignCtx, &g_rsaSlots[key->slot].priv,
+      CRYS_RSA_HASH_SHA256_mode, CRYS_PKCS1_MGF1, kRsaPssSaltLen, bounce,
+      static_cast<uint32_t>(msgLen), sig, &sigLen);
+  if (e != CRYS_OK) {
+    recordCrys(e);
+    return CryptoStatus::InternalError;
+  }
+  return CryptoStatus::Ok;
+}
+
+CryptoStatus CC310Backend::rsaPssVerifyWithKeyPair(const RsaKeyPair* key,
+                                                   const uint8_t* msg,
+                                                   size_t msgLen,
+                                                   const uint8_t sig[kRsa2048SigLen]) {
+  if (!started_) return CryptoStatus::NotStarted;
+  if (!key || !sig || !rsaSlotValid(key->slot)) return CryptoStatus::BadParam;
+  uint8_t* bounce = nullptr;
+  CryptoStatus bs = bounceMsg(msg, msgLen, &bounce);
+  if (bs != CryptoStatus::Ok) return bs;
+  uint8_t sigRam[kRsa2048SigLen];
+  memcpy(sigRam, sig, sizeof(sigRam));
+  CRYSError_t e = CRYS_RSA_PSS_Verify(
+      &g_rsaVerifyCtx, &g_rsaSlots[key->slot].pub, CRYS_RSA_HASH_SHA256_mode,
+      CRYS_PKCS1_MGF1, kRsaPssSaltLen, bounce, static_cast<uint32_t>(msgLen),
+      sigRam);
+  if (e != CRYS_OK) recordCrys(e);
+  return e == CRYS_OK ? CryptoStatus::Ok : CryptoStatus::AuthFailed;
+}
+
+CryptoStatus CC310Backend::rsaPssVerifyWithPublicKey(
+    const RsaPublicKey* pub, const uint8_t* msg, size_t msgLen,
+    const uint8_t sig[kRsa2048SigLen]) {
+  if (!started_) return CryptoStatus::NotStarted;
+  if (!pub || !sig || pub->modLen == 0 || pub->expLen == 0)
+    return CryptoStatus::BadParam;
+  if (pub->modLen > kRsa2048ModLen || pub->expLen > kRsaMaxExpLen)
+    return CryptoStatus::BadParam;
+  uint8_t modRam[kRsa2048ModLen];
+  uint8_t expRam[kRsaMaxExpLen];
+  memcpy(modRam, pub->modulus, pub->modLen);
+  memcpy(expRam, pub->exponent, pub->expLen);
+  static CRYS_RSAUserPubKey_t crysPub;
+  CRYSError_t b = CRYS_RSA_Build_PubKey(&crysPub, expRam, pub->expLen, modRam,
+                                        pub->modLen);
+  if (b != CRYS_OK) {
+    recordCrys(b);
+    return CryptoStatus::BadParam;
+  }
+  uint8_t* bounce = nullptr;
+  CryptoStatus bs = bounceMsg(msg, msgLen, &bounce);
+  if (bs != CryptoStatus::Ok) return bs;
+  uint8_t sigRam[kRsa2048SigLen];
+  memcpy(sigRam, sig, sizeof(sigRam));
+  CRYSError_t e = CRYS_RSA_PSS_Verify(
+      &g_rsaVerifyCtx, &crysPub, CRYS_RSA_HASH_SHA256_mode, CRYS_PKCS1_MGF1,
+      kRsaPssSaltLen, bounce, static_cast<uint32_t>(msgLen), sigRam);
+  if (e != CRYS_OK) recordCrys(e);
+  return e == CRYS_OK ? CryptoStatus::Ok : CryptoStatus::AuthFailed;
 }
 
 CryptoStatus CC310Backend::rsaVerifyWithKeyPair(const RsaKeyPair* key,
@@ -831,8 +970,24 @@ CryptoStatus CC310Backend::ecdsaP256Verify(const uint8_t*, const uint8_t*, const
 CryptoStatus CC310Backend::ecdhP256Shared(const uint8_t*, const uint8_t*, uint8_t*) { return CryptoStatus::HardwareMissing; }
 CryptoStatus CC310Backend::x25519GenerateKey(uint8_t*, uint8_t*) { return CryptoStatus::HardwareMissing; }
 CryptoStatus CC310Backend::x25519Shared(const uint8_t*, const uint8_t*, uint8_t*) { return CryptoStatus::HardwareMissing; }
+bool CC310Backend::supportsCapability(CryptoCapability) const { return false; }
 CryptoStatus CC310Backend::rsa2048GenerateKey() { return CryptoStatus::HardwareMissing; }
 CryptoStatus CC310Backend::rsaGenerateKeyPair(RsaKeyPair*) { return CryptoStatus::HardwareMissing; }
+CryptoStatus CC310Backend::rsaImportKeyPair(RsaKeyPair*, const RsaPrivateKeyImport*) {
+  return CryptoStatus::HardwareMissing;
+}
+CryptoStatus CC310Backend::rsaPssSignWithKeyPair(const RsaKeyPair*, const uint8_t*, size_t,
+                                                 uint8_t*) {
+  return CryptoStatus::HardwareMissing;
+}
+CryptoStatus CC310Backend::rsaPssVerifyWithKeyPair(const RsaKeyPair*, const uint8_t*, size_t,
+                                                   const uint8_t*) {
+  return CryptoStatus::HardwareMissing;
+}
+CryptoStatus CC310Backend::rsaPssVerifyWithPublicKey(const RsaPublicKey*, const uint8_t*, size_t,
+                                                     const uint8_t*) {
+  return CryptoStatus::HardwareMissing;
+}
 CryptoStatus CC310Backend::rsaSignWithKeyPair(const RsaKeyPair*, const uint8_t*, size_t, uint8_t*) { return CryptoStatus::HardwareMissing; }
 CryptoStatus CC310Backend::rsaVerifyWithKeyPair(const RsaKeyPair*, const uint8_t*, size_t, const uint8_t*) { return CryptoStatus::HardwareMissing; }
 CryptoStatus CC310Backend::rsaVerifyWithPublicKey(const RsaPublicKey*, const uint8_t*, size_t, const uint8_t*) { return CryptoStatus::HardwareMissing; }

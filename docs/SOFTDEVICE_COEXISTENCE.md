@@ -16,7 +16,7 @@ succeed with the same USB CDC stack active — no S140 SoftDevice on this board.
 
 | Scenario | Result |
 |----------|--------|
-| `CryptoSelfTest` @ `0x1000` | **13/13 PASS**, `backend: CC310` |
+| `CryptoSelfTest` @ `0x1000` | **23/23 PASS**, `backend: CC310` |
 | `CC310Smoke` (shim) | **RESULT: OK** |
 | `SdCryptoSmoke` — crypto loop while USB CDC active | **RESULT: OK**, prints layout |
 
@@ -40,6 +40,9 @@ Nordic's RTOS or SDH crypto glue. In practice:
   in `loop()` while NimBLE events run on the main stack). See
   `examples/BleCryptoStress` for a CC310 + NimBLE advertising stress sketch on
   board1.
+
+Threading and ISR guidance is also summarized in
+[API_REFERENCE.md §5](API_REFERENCE.md#5-global-limitations).
 
 ## If the app HardFaults before USB enumerates
 

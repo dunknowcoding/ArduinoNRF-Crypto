@@ -14,6 +14,8 @@
       gcm.input = plaintext;  gcm.output = ciphertextBuffer;
       Crypto.aesGcmSeal(gcm);
 
+  Full API manual: docs/API_REFERENCE.md (basic -> advanced, limits, examples).
+
   Buffer sizes — use NIUS_* macros in uint8_t buf[...] declarations.
   Check results with NIUS_OK(...) or cryptoOk(...).
 */
@@ -51,15 +53,28 @@
 
 using ncrypto::CryptoEngine;
 using ncrypto::CryptoStatus;
+using ncrypto::CryptoCapability;
+using ncrypto::cryptoCapabilityName;
 using ncrypto::cryptoStatusName;
 using ncrypto::RsaPublicKey;
 using ncrypto::RsaKeyPair;
+using ncrypto::RsaPrivateKeyImport;
+using ncrypto::SelfTestReport;
+using ncrypto::Sha256Context;
+using ncrypto::Sha384Context;
+using ncrypto::Sha512Context;
 using ncrypto::AesGcmMessage;
 using ncrypto::AesCbcMessage;
 using ncrypto::AesCtrMessage;
 using ncrypto::ChaChaPolyMessage;
 using ncrypto::HmacMessage;
 using ncrypto::Sha256Message;
+using ncrypto::Sha384Message;
+using ncrypto::Sha512Message;
+using ncrypto::HkdfMessage;
+using ncrypto::X25519Message;
+using ncrypto::EcdsaMessage;
+using ncrypto::Ed25519Message;
 
 inline bool cryptoOk(CryptoStatus s) { return s == CryptoStatus::Ok; }
 
