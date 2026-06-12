@@ -47,10 +47,37 @@ static constexpr size_t kP256SigLen = 64;   // R||S
 static constexpr size_t kP256SharedLen = 32;
 static constexpr size_t kX25519KeyLen = 32;
 static constexpr size_t kEd25519PubLen = 32;
+static constexpr size_t kEd25519SeedLen = 32;
 static constexpr size_t kEd25519SecLen = 64;
 static constexpr size_t kEd25519SigLen = 64;
 static constexpr size_t kRsa2048ModLen = 256;
 static constexpr size_t kRsa2048SigLen = 256;
+static constexpr size_t kRsaMaxExpLen = 4;
+static constexpr uint8_t kRsaInvalidSlot = 0xFF;
+
+/** Exported RSA-2048 public key (modulus + exponent). */
+struct RsaPublicKey {
+  uint8_t modulus[kRsa2048ModLen];
+  uint8_t exponent[kRsaMaxExpLen];
+  uint16_t modLen = 0;
+  uint16_t expLen = 0;
+};
+
+/**
+ * RSA-2048 key pair handle. Private key material stays in the CC310 backend slot;
+ * `pub` holds the exported public half for verify / share.
+ */
+struct RsaKeyPair {
+  uint8_t slot = kRsaInvalidSlot;
+  RsaPublicKey pub;
+
+  bool valid() const { return slot != kRsaInvalidSlot; }
+  void clear() {
+    slot = kRsaInvalidSlot;
+    pub.modLen = 0;
+    pub.expLen = 0;
+  }
+};
 
 // Human-readable name for a status, handy in sketches and tests.
 inline const char* cryptoStatusName(CryptoStatus s) {

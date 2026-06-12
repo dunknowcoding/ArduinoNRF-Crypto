@@ -1,10 +1,11 @@
 # NiusCrypto
 
 Hardware-accelerated cryptography for the [ArduinoNRF](../ArduinoNRF) board
-package (nRF52840 / ProMicro). One friendly API — `random`, `SHA-256`, `HMAC`,
-`AES-128` (CBC / CTR / GCM), `ChaCha20-Poly1305`, and `ECDSA` / `ECDH` on NIST P-256 — backed by the
-chip's **Arm CryptoCell 310** hardware accelerator, with an automatic on-chip
-fallback when the Nordic binary is not present.
+package (nRF52840 / ProMicro). One friendly API — `random`, SHA-256/384/512,
+HMAC, HKDF, AES-128 (CBC / CTR / GCM), ChaCha20-Poly1305, ECDSA / ECDH P-256,
+X25519, Ed25519, and RSA-2048 — backed by the chip's **Arm CryptoCell 310**
+hardware accelerator, with an automatic on-chip fallback when the Nordic binary
+is not present.
 
 The library mirrors the layered design of `ArduinoNRF-IMU`: a single front-end
 object (`Crypto`) talks to a swappable **backend**, exactly like `NiusIMU` talks
@@ -18,8 +19,10 @@ void setup() {
   Crypto.begin();                       // picks the best backend
   Serial.println(Crypto.backendName()); // "CC310" or "OnChip"
 
-  uint8_t digest[32];
-  Crypto.sha256((const uint8_t*)"abc", 3, digest);   // hardware SHA-256
+  uint8_t digest[NIUS_SHA256_BYTES];
+  if (NIUS_OK(Crypto.sha256((const uint8_t*)"abc", 3, digest))) {
+    // use digest
+  }
 }
 ```
 
@@ -40,6 +43,7 @@ void setup() {
 | `chachaPoly*` | `nrf_oberon` (software²)     | *Unsupported*             |
 | `ecdsa*` / `ecdh*` | **CC310 ECC P-256 (hardware)** | *Unsupported*        |
 | `x25519*` | **CC310 Curve25519 (hardware)** | *Unsupported*             |
+| `ed25519*` | **CC310 Ed25519 (hardware)** | *Unsupported*             |
 | `rsa*` | **CC310 RSA-2048 PKCS#1 SHA-256 (hardware)** | *Unsupported*      |
 
 ¹ The nRF52840 ECB peripheral only *encrypts*; CBC decryption needs the AES
@@ -75,8 +79,8 @@ PASS  SHA-384("abc")                        PASS  ECDH P-256 shared-secret
 PASS  SHA-512("abc")                        PASS  random() (TRNG, fresh each run)
 PASS  HKDF-SHA-256 (RFC 5869 #1)            PASS  AES-128-GCM encrypt + decrypt+auth
 PASS  HMAC-SHA-256 (RFC 4231 #2)            PASS  ChaCha20-Poly1305 (RFC 8439 A.5)
-PASS  AES-128-CBC/CTR/GCM                    PASS  X25519 + RSA-2048 sign/verify
-summary: 17 passed, 0 failed, 0 skipped     RESULT: OK
+PASS  AES-128-CBC/CTR/GCM                    PASS  X25519 + RSA + Ed25519
+summary: 20 passed, 0 failed, 0 skipped     RESULT: OK
 ```
 
 ## Installing the library
@@ -167,8 +171,16 @@ After cloning, run the two vendoring steps in [Enabling the CC310 backend](#enab
 
 ## API
 
-All calls return a `CryptoStatus` (`Ok`, `Unsupported`, `AuthFailed`, ...);
-`cryptoStatusName()` turns it into a string.
+All calls return a `CryptoStatus` (`Ok`, `Unsupported`, `AuthFailed`, …).
+Use `NIUS_OK(...)` or `cryptoOk(...)` for quick checks; `cryptoStatusName()`
+turns a status into a string.
+
+### Buffer sizes
+
+Declare stack buffers with the `NIUS_*_BYTES` macros from `<NiusCrypto.h>`
+(e.g. `uint8_t hash[NIUS_SHA256_BYTES]`, `uint8_t sig[NIUS_RSA2048_SIG]`).
+
+### Core
 
 ```cpp
 bool        Crypto.begin(Prefer = Auto);
@@ -176,30 +188,54 @@ const char* Crypto.backendName();
 bool        Crypto.isHardwareAccelerated();
 
 CryptoStatus Crypto.random(uint8_t* buf, size_t len);
-CryptoStatus Crypto.sha256(const uint8_t* in, size_t len, uint8_t out[32]);
-CryptoStatus Crypto.sha384(const uint8_t* in, size_t len, uint8_t out[48]);
-CryptoStatus Crypto.sha512(const uint8_t* in, size_t len, uint8_t out[64]);
-CryptoStatus Crypto.hmacSha256(const uint8_t* key, size_t keyLen,
-                               const uint8_t* msg, size_t msgLen, uint8_t out[32]);
-CryptoStatus Crypto.hkdfSha256(const uint8_t* ikm, size_t ikmLen,
-                               const uint8_t* salt, size_t saltLen,
-                               const uint8_t* info, size_t infoLen,
-                               uint8_t* okm, size_t okmLen);
-
-CryptoStatus Crypto.aesCbcEncrypt(key16, iv16, in, out, len /*%16*/);
-CryptoStatus Crypto.aesCbcDecrypt(key16, iv16, in, out, len /*%16*/);
-CryptoStatus Crypto.aesCtr(key16, iv16, in, out, len);   // enc == dec
-CryptoStatus Crypto.aesGcmEncrypt(key16, iv12, aad, aadLen, in, out, len, tag16);
-CryptoStatus Crypto.aesGcmDecrypt(key16, iv12, aad, aadLen, in, out, len, tag16);
-
-CryptoStatus Crypto.ecdsaGenerateKey(priv32, pub64);
-CryptoStatus Crypto.ecdsaSign(priv32, hash32, sig64);
-CryptoStatus Crypto.ecdsaVerify(pub64, hash32, sig64);
-CryptoStatus Crypto.ecdhShared(priv32, peerPub64, shared32);
+CryptoStatus Crypto.sha256(in, len, out);   // out[NIUS_SHA256_BYTES]
+CryptoStatus Crypto.hmacSha256(key, keyLen, msg, msgLen, out);
+CryptoStatus Crypto.hkdfSha256(ikm, ikmLen, salt, saltLen, info, infoLen, okm, okmLen);
+CryptoStatus Crypto.aesCbcEncrypt / aesCbcDecrypt / aesCtr / aesGcm* / chachaPoly*;
+CryptoStatus Crypto.chacha20Poly1305Encrypt(...);  // alias
 ```
 
-Public keys are 64 bytes (`X‖Y`), signatures 64 bytes (`R‖S`), private scalars
-32 bytes, all big-endian. `ecdsaSign` takes a 32-byte message **hash**.
+### Elliptic curve (CC310 only)
+
+```cpp
+CryptoStatus Crypto.ecdsaGenerateKey(priv, pub);
+CryptoStatus Crypto.ecdsaSignMessage(priv, msg, msgLen, sig);   // SHA-256 + sign
+CryptoStatus Crypto.ecdsaVerifyMessage(pub, msg, msgLen, sig);
+CryptoStatus Crypto.ecdhShared(priv, peerPub, shared);
+
+CryptoStatus Crypto.x25519GenerateKey(priv, pub);
+CryptoStatus Crypto.x25519Shared(priv, peerPub, shared);
+
+CryptoStatus Crypto.ed25519GenerateKey(secret64, pub32);
+CryptoStatus Crypto.ed25519SignFromSeed(seed32, msg, msgLen, sig64);
+CryptoStatus Crypto.ed25519Sign / ed25519Verify;
+```
+
+`ed25519` **secret** is 64 bytes on CC310 (seed ‖ public key). Use
+`ed25519SignFromSeed()` when you only have a 32-byte seed.
+
+### RSA-2048 (CC310 only) — explicit key handle (v0.5+)
+
+```cpp
+RsaKeyPair key;
+Crypto.rsaGenerate(&key);                    // or rsaGenerateKeyPair(&key)
+Crypto.rsaSign(&key, msg, msgLen, sig256);
+Crypto.rsaVerify(&key, msg, msgLen, sig256);
+Crypto.rsaVerifyWithPubKey(&key.pub, msg, msgLen, sig256);
+
+RsaPublicKey exported;
+Crypto.rsaExportPublic(&key, &exported);
+```
+
+Legacy implicit key (slot 0, still supported):
+
+```cpp
+Crypto.rsa2048GenerateKey();
+Crypto.rsaPkcs1Sha256Sign(msg, msgLen, sig256);
+```
+
+P-256 public keys are 64 bytes (`X‖Y`), signatures 64 bytes (`R‖S`), private
+scalars 32 bytes, all big-endian.
 
 ## Examples
 
@@ -216,6 +252,8 @@ Public keys are 64 bytes (`X‖Y`), signatures 64 bytes (`R‖S`), private scala
 | `BleCryptoStress` | NimBLE advertising + CC310 SHA/HMAC loop; NUS GATT when connected |
 | `HkdfSha256` | HKDF-SHA-256 key derivation (RFC 5869) |
 | `EcdsaSignVerify` | P-256 key gen, sign, verify, tamper-detect |
+| `Ed25519SignVerify` | Ed25519 sign/verify + sign-from-seed |
+| `RsaSignExport` | RSA-2048 with explicit `RsaKeyPair` handle |
 | `EcdhKeyExchange` | P-256 shared-secret agreement between two parties |
 
 ## Documentation

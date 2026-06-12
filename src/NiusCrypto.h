@@ -4,22 +4,59 @@
       #include <NiusCrypto.h>
 
       void setup() {
-        Crypto.begin();                       // CC310 if vendored, else on-chip
-        uint8_t digest[32];
+        Crypto.begin();
+        uint8_t digest[NIUS_SHA256_BYTES];
         Crypto.sha256((const uint8_t*)"hi", 2, digest);
       }
 
-  It pulls in the engine and the ready-made global `Crypto`, and lifts the
-  common names out of the ncrypto namespace so you can write CryptoStatus
-  directly. For the framework pieces alone, include <ArduinoNRF_Crypto.h>.
+  Buffer sizes (use these in uint8_t buf[...] declarations):
+    NIUS_SHA256_BYTES  NIUS_SHA384_BYTES  NIUS_SHA512_BYTES
+    NIUS_AES128_KEY    NIUS_AES_BLOCK     NIUS_GCM_IV / NIUS_GCM_TAG
+    NIUS_P256_PRIV     NIUS_P256_PUB      NIUS_P256_SIG
+    NIUS_X25519_KEY    NIUS_ED25519_PUB   NIUS_ED25519_SIG
+    NIUS_ED25519_SECRET (64 = seed||pub, CC310 layout)
+    NIUS_RSA2048_MOD   NIUS_RSA2048_SIG
+
+  Check results:  NIUS_OK(Crypto.sha256(...))  or  cryptoOk(...)
 */
 #ifndef NIUSCRYPTO_PUBLIC_H
 #define NIUSCRYPTO_PUBLIC_H
 
 #include "ArduinoNRF_Crypto.h"
 
+// ---- Buffer size cheatsheet (match ncrypto::k* constants) ----
+#define NIUS_SHA256_BYTES     32
+#define NIUS_SHA384_BYTES     48
+#define NIUS_SHA512_BYTES     64
+#define NIUS_AES128_KEY       16
+#define NIUS_AES_BLOCK        16
+#define NIUS_GCM_IV           12
+#define NIUS_GCM_TAG          16
+#define NIUS_CHACHA_KEY       32
+#define NIUS_CHACHA_NONCE     12
+#define NIUS_CHACHA_TAG       16
+#define NIUS_P256_PRIV        32
+#define NIUS_P256_PUB         64
+#define NIUS_P256_SIG         64
+#define NIUS_P256_SHARED      32
+#define NIUS_X25519_KEY       32
+#define NIUS_ED25519_SEED     32
+#define NIUS_ED25519_PUB      32
+#define NIUS_ED25519_SECRET   64
+#define NIUS_ED25519_SIG      64
+#define NIUS_RSA2048_MOD      256
+#define NIUS_RSA2048_SIG      256
+#define NIUS_RSA_MAX_EXP      4
+
+/** True when a CryptoStatus is CryptoStatus::Ok. */
+#define NIUS_OK(status) ((status) == CryptoStatus::Ok)
+
 using ncrypto::CryptoEngine;
 using ncrypto::CryptoStatus;
 using ncrypto::cryptoStatusName;
+using ncrypto::RsaPublicKey;
+using ncrypto::RsaKeyPair;
+
+inline bool cryptoOk(CryptoStatus s) { return s == CryptoStatus::Ok; }
 
 #endif  // NIUSCRYPTO_PUBLIC_H

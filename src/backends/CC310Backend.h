@@ -95,6 +95,19 @@ class CC310Backend : public CryptoBackend {
                             const uint8_t peerPub[kX25519KeyLen],
                             uint8_t shared[kX25519KeyLen]) override;
 
+  CryptoStatus rsaGenerateKeyPair(RsaKeyPair* key) override;
+  CryptoStatus rsaSignWithKeyPair(const RsaKeyPair* key, const uint8_t* msg,
+                                  size_t msgLen,
+                                  uint8_t sig[kRsa2048SigLen]) override;
+  CryptoStatus rsaVerifyWithKeyPair(const RsaKeyPair* key, const uint8_t* msg,
+                                    size_t msgLen,
+                                    const uint8_t sig[kRsa2048SigLen]) override;
+  CryptoStatus rsaVerifyWithPublicKey(const RsaPublicKey* pub,
+                                      const uint8_t* msg, size_t msgLen,
+                                      const uint8_t sig[kRsa2048SigLen]) override;
+  CryptoStatus rsaExportPublicKey(const RsaKeyPair* key,
+                                  RsaPublicKey* out) override;
+
   CryptoStatus rsa2048GenerateKey() override;
   CryptoStatus rsaPkcs1Sha256Sign(const uint8_t* msg, size_t msgLen,
                                   uint8_t sig[kRsa2048SigLen]) override;

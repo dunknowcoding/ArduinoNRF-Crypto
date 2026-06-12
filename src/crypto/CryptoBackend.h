@@ -193,7 +193,31 @@ class CryptoBackend {
   }
 
   // ---- RSA-2048 PKCS#1 v1.5 + SHA-256 (CC310) ----
-  // rsa2048GenerateKey stores the pair inside the backend until the next call.
+  // Legacy rsa2048GenerateKey() uses an internal default key (slot 0).
+  // Prefer rsaGenerateKeyPair() for an explicit RsaKeyPair handle.
+
+  virtual CryptoStatus rsaGenerateKeyPair(RsaKeyPair* key) {
+    (void)key; return CryptoStatus::Unsupported;
+  }
+  virtual CryptoStatus rsaSignWithKeyPair(const RsaKeyPair* key,
+                                          const uint8_t* msg, size_t msgLen,
+                                          uint8_t sig[kRsa2048SigLen]) {
+    (void)key; (void)msg; (void)msgLen; (void)sig; return CryptoStatus::Unsupported;
+  }
+  virtual CryptoStatus rsaVerifyWithKeyPair(const RsaKeyPair* key,
+                                            const uint8_t* msg, size_t msgLen,
+                                            const uint8_t sig[kRsa2048SigLen]) {
+    (void)key; (void)msg; (void)msgLen; (void)sig; return CryptoStatus::Unsupported;
+  }
+  virtual CryptoStatus rsaVerifyWithPublicKey(const RsaPublicKey* pub,
+                                              const uint8_t* msg, size_t msgLen,
+                                              const uint8_t sig[kRsa2048SigLen]) {
+    (void)pub; (void)msg; (void)msgLen; (void)sig; return CryptoStatus::Unsupported;
+  }
+  virtual CryptoStatus rsaExportPublicKey(const RsaKeyPair* key,
+                                          RsaPublicKey* out) {
+    (void)key; (void)out; return CryptoStatus::Unsupported;
+  }
 
   virtual CryptoStatus rsa2048GenerateKey() {
     return CryptoStatus::Unsupported;

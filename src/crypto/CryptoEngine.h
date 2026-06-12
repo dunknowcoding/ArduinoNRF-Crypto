@@ -125,7 +125,19 @@ class CryptoEngine {
                            const uint8_t peerPub[kX25519KeyLen],
                            uint8_t shared[kX25519KeyLen]);
 
-  /** RSA-2048 PKCS#1 v1.5 + SHA-256. CC310 only; call rsa2048GenerateKey first. */
+  // ---- RSA-2048 (explicit key handle; CC310 only) ----
+  CryptoStatus rsaGenerateKeyPair(RsaKeyPair* key);
+  CryptoStatus rsaSignWithKeyPair(const RsaKeyPair* key, const uint8_t* msg,
+                                  size_t msgLen, uint8_t sig[kRsa2048SigLen]);
+  CryptoStatus rsaVerifyWithKeyPair(const RsaKeyPair* key, const uint8_t* msg,
+                                    size_t msgLen,
+                                    const uint8_t sig[kRsa2048SigLen]);
+  CryptoStatus rsaVerifyWithPublicKey(const RsaPublicKey* pub,
+                                      const uint8_t* msg, size_t msgLen,
+                                      const uint8_t sig[kRsa2048SigLen]);
+  CryptoStatus rsaExportPublicKey(const RsaKeyPair* key, RsaPublicKey* out);
+
+  /** @deprecated Use rsaGenerateKeyPair + rsaSignWithKeyPair instead. */
   CryptoStatus rsa2048GenerateKey();
   CryptoStatus rsaPkcs1Sha256Sign(const uint8_t* msg, size_t msgLen,
                                   uint8_t sig[kRsa2048SigLen]);
@@ -137,6 +149,25 @@ class CryptoEngine {
                                         const uint8_t* pubExp, uint16_t pubExpLen,
                                         const uint8_t* msg, size_t msgLen,
                                         const uint8_t sig[kRsa2048SigLen]);
+
+  /** Friendly aliases (same behavior as the names above). */
+  inline CryptoStatus rsaGenerate(RsaKeyPair* key) { return rsaGenerateKeyPair(key); }
+  inline CryptoStatus rsaSign(const RsaKeyPair* key, const uint8_t* msg,
+                              size_t msgLen, uint8_t sig[kRsa2048SigLen]) {
+    return rsaSignWithKeyPair(key, msg, msgLen, sig);
+  }
+  inline CryptoStatus rsaVerify(const RsaKeyPair* key, const uint8_t* msg,
+                                size_t msgLen, const uint8_t sig[kRsa2048SigLen]) {
+    return rsaVerifyWithKeyPair(key, msg, msgLen, sig);
+  }
+  inline CryptoStatus rsaVerifyWithPubKey(const RsaPublicKey* pub,
+                                          const uint8_t* msg, size_t msgLen,
+                                          const uint8_t sig[kRsa2048SigLen]) {
+    return rsaVerifyWithPublicKey(pub, msg, msgLen, sig);
+  }
+  inline CryptoStatus rsaExportPublic(const RsaKeyPair* key, RsaPublicKey* out) {
+    return rsaExportPublicKey(key, out);
+  }
 
   /** Ed25519 sign/verify (CC310). secret is 64 bytes (CRYS seed||pub layout). */
   CryptoStatus ed25519GenerateKey(uint8_t secret[kEd25519SecLen],
@@ -151,11 +182,40 @@ class CryptoEngine {
                              const uint8_t* msg, size_t msgLen,
                              const uint8_t sig[kEd25519SigLen]);
 
+  /** Hash message with SHA-256 then ECDSA P-256 sign (CC310 only). */
+  CryptoStatus ecdsaSignMessage(const uint8_t priv[kP256PrivLen],
+                                const uint8_t* msg, size_t msgLen,
+                                uint8_t sig[kP256SigLen]);
+  /** Hash message with SHA-256 then ECDSA P-256 verify (CC310 only). */
+  CryptoStatus ecdsaVerifyMessage(const uint8_t pub[kP256PubLen],
+                                  const uint8_t* msg, size_t msgLen,
+                                  const uint8_t sig[kP256SigLen]);
+
+  /** Derive Ed25519 key from 32-byte seed, then sign (CC310 only). */
+  CryptoStatus ed25519SignFromSeed(const uint8_t seed[kEd25519SeedLen],
+                                   const uint8_t* msg, size_t msgLen,
+                                   uint8_t sig[kEd25519SigLen]);
+
+  /** AEAD aliases (RFC 8439). */
+  inline CryptoStatus chacha20Poly1305Encrypt(
+      const uint8_t key[kChaPolyKeyLen], const uint8_t nonce[kChaPolyNonceLen],
+      const uint8_t* aad, size_t aadLen, const uint8_t* in, uint8_t* out,
+      size_t len, uint8_t tag[kChaPolyTagLen]) {
+    return chachaPolyEncrypt(key, nonce, aad, aadLen, in, out, len, tag);
+  }
+  inline CryptoStatus chacha20Poly1305Decrypt(
+      const uint8_t key[kChaPolyKeyLen], const uint8_t nonce[kChaPolyNonceLen],
+      const uint8_t* aad, size_t aadLen, const uint8_t* in, uint8_t* out,
+      size_t len, const uint8_t tag[kChaPolyTagLen]) {
+    return chachaPolyDecrypt(key, nonce, aad, aadLen, in, out, len, tag);
+  }
+
   /** The active backend, or nullptr if not started (advanced use). */
   CryptoBackend* backend() const { return backend_; }
 
  private:
   CryptoBackend* backend_ = nullptr;
+  RsaKeyPair legacyRsa_{};
 };
 
 }  // namespace ncrypto
