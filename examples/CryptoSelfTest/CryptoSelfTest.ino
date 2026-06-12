@@ -6,6 +6,9 @@
   published test vector or a sign/verify round-trip. Prints PASS / FAIL / SKIP
   per item and a final summary.
 
+  Define NIUS_FORCE_ONCHIP_SELFTEST at compile time to call
+  Crypto.begin(CryptoEngine::Prefer::OnChip) for OnChip-only validation.
+
   On a board with CC310 vendored every line should read PASS. On the bare
   on-chip fallback, GCM / ChaCha20-Poly1305 / P-256 / X25519 / Ed25519 / RSA /
   ECDH read SKIP (Unsupported) - that is expected, not a failure.
@@ -20,7 +23,12 @@ void setup() {
   }
 
   Serial.println(F("=== NiusCrypto self-test ==="));
-  if (!Crypto.begin()) {
+#if defined(NIUS_FORCE_ONCHIP_SELFTEST)
+  const bool began = Crypto.begin(CryptoEngine::Prefer::OnChip);
+#else
+  const bool began = Crypto.begin();
+#endif
+  if (!began) {
     Serial.println(F("Crypto.begin() FAILED - no backend available"));
     return;
   }

@@ -25,6 +25,43 @@ summary: 23 passed, 0 failed, 0 skipped
 RESULT: OK
 ```
 
+### OnChip backend (board1, runtime `Prefer::OnChip`)
+
+Forces the software / peripheral fallback while CC310 blobs remain linked
+(same firmware as the CC310 run, different backend selection):
+
+| Test | Result | Notes |
+|------|--------|-------|
+| `CryptoSelfTest` + `-DNIUS_FORCE_ONCHIP_SELFTEST` | **9/9 PASS, 14 SKIP** | SHA-256/384/512, HKDF, HMAC, AES-CBC/CTR, RNG; ECC/RSA/GCM/ChaPoly skipped |
+
+Expected tail:
+
+```
+backend: OnChip   hardware-accelerated: no
+summary: 9 passed, 0 failed, 14 skipped
+RESULT: OK
+```
+
+Reproduce (J-Link upload, serial capture **without** a second J-Link reset — the
+upload soft-reset is enough):
+
+```powershell
+$Repo = 'F:\path\to\ArduinoNRF-Crypto'
+$Cli  = Join-Path $Repo 'vendor\hwverify\arduino-cli.yaml'
+$Build = Join-Path $Repo 'vendor\hwverify\_verify_onchip'
+$Fqbn = 'arduinonrf:nrf52:promicro_nrf52840:uploadmode=jlink,bootloader=autonosd,usbcdc=enabled'
+arduino-cli --config-file $Cli compile --fqbn $Fqbn --library $Repo `
+  --build-path $Build `
+  --build-property compiler.cpp.extra_flags=-DNIUS_FORCE_ONCHIP_SELFTEST `
+  (Join-Path $Repo 'examples\CryptoSelfTest')
+arduino-cli --config-file $Cli upload --fqbn $Fqbn --input-dir $Build
+# Open COM18 @ 115200 — expect RESULT: OK within ~15 s
+```
+
+**Note:** A second J-Link reset immediately after upload (as in `capture_serial.py`)
+can delay USB CDC re-enumeration long enough to miss the boot log; wait a few
+seconds or read serial without resetting again.
+
 ### Earlier releases
 
 | Version | CryptoSelfTest | Notes |

@@ -210,13 +210,14 @@ Crypto.begin(CryptoEngine::Prefer::OnChip);        // software / peripheral only
 |-----------|---------------|-----------------|
 | `random` | CC310 TRNG (hardware) | nRF52840 RNG peripheral |
 | `sha256` | CC310 SHA-256 (hardware) | `SoftSha256` (software) |
-| `sha384` | Oberon software | **Unsupported** |
-| `sha512` | CC310 SHA-512 (hardware) | **Unsupported** |
-| `hmacSha256` | CC310 HMAC (hardware) | `SoftSha256` fallback in engine |
-| `hkdfSha256` | CC310 HKDF (hardware) | **Unsupported** |
-| `aesCbcEncrypt` | CC310 AES-CBC (hardware) | ECB peripheral (encrypt only path) |
-| `aesCbcDecrypt` | CC310 AES-CBC (hardware) | **Unsupported** |
-| `aesCtr` | CC310 AES-CTR (hardware) | ECB-based CTR (hardware-assisted) |
+| `sha384` | Oberon software (CC310 path) | Software (`SoftSha512`) |
+| `sha512` | CC310 SHA-512 (hardware) | Software (`SoftSha512`) |
+| `hmacSha256` | CC310 HMAC (hardware) | Software (`SoftSha256`) |
+| `hkdfSha256` | CC310 HKDF (hardware) | Software (`SoftHkdf`) |
+| `aesCbcEncrypt` | CC310 AES-CBC (hardware) | ECB peripheral (encrypt path) |
+| `aesCbcDecrypt` | CC310 AES-CBC (hardware) | ECB peripheral + software inverse |
+| `aesCtr` | CC310 AES-CTR (hardware) | ECB peripheral |
+| `sha256Stream` / `sha384Stream` / `sha512Stream` | Software streaming contexts | Software streaming contexts |
 | `aesGcm*` | Oberon software | **Unsupported** |
 | `chachaPoly*` | Oberon software | **Unsupported** |
 | `ecdsa*` / `ecdh*` | CC310 ECC P-256 (hardware) | **Unsupported** |
@@ -347,8 +348,9 @@ Crypto.sha256(msg);
 msg.reset();
 ```
 
-**Limitations:** `sha384` and `sha512` require CC310 backend. On OnChip,
-`sha384`/`sha512` return `Unsupported`; only `sha256` is available.
+**Limitations:** On the CC310 path, `sha384` uses Oberon software while
+`sha256`/`sha512` use the CryptoCell hash engine. On OnChip (v0.6+), all three
+one-shot and streaming digest APIs are available via software implementations.
 
 ---
 
@@ -552,8 +554,8 @@ gcm.reset();
 | Topic | Detail |
 |-------|--------|
 | GCM on CC310 | Oberon software, not CRYS hardware |
-| GCM on OnChip | **Unsupported** |
-| CBC decrypt on OnChip | **Unsupported** — use CTR or enable CC310 |
+| GCM on OnChip | **Unsupported** — vendoring required |
+| CBC decrypt on OnChip | Supported (v0.6+) via ECB peripheral + software inverse |
 | Empty plaintext | Allowed (`len == 0`); `in`/`out` may be null |
 | In-place | Caller must ensure `out` does not overlap `in` unless backend allows it; use separate buffers to be safe |
 
