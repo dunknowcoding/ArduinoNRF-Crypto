@@ -62,34 +62,13 @@ jobs:
       - name: Checkout NiusCrypto
         uses: actions/checkout@v4
 
-      - name: Checkout ArduinoNRF core
-        uses: actions/checkout@v4
-        with:
-          repository: dunknowcoding/ArduinoNRF
-          path: ArduinoNRF
-
-      - name: Install arduino-cli
-        run: |
-          curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh
-          echo "$PWD/bin" >> "$GITHUB_PATH"
-
-      - name: Install ArduinoNRF core (local)
-        run: |
-          mkdir -p "$HOME/.arduino15/packages/arduinonrf/hardware/nrf52/0.0.0"
-          cp -r ArduinoNRF/hardware/arduinonrf/nrf52/* "$HOME/.arduino15/packages/arduinonrf/hardware/nrf52/0.0.0/"
-
-      - name: Install toolchain
-        run: |
-          arduino-cli core update-index
-          arduino-cli core install arduinonrf:nrf52
-
       - name: Run arduino-lint
         uses: arduino/arduino-lint-action@v1
         with:
-          fqbn: arduinonrf:nrf52:promicro_nrf52840
+          project-type: library
           library-manager: update
           compliance: specification
-          project-type: library
+          recursive: false
 
   compile-cc310-note:
     if: github.event_name == 'workflow_dispatch'

@@ -55,9 +55,9 @@ arduino-cli compile \
 
 **nice!nano / S140 (`0x26000`):** omit the bootloader option or use `bootloader=auto`.
 
-All nine examples (`Aes`, `Backends`, `CryptoSelfTest`, `EcdhKeyExchange`,
-`EcdsaSignVerify`, `HmacSha256`, `RandomBytes`, `Sha256`) build clean at ~15%
-flash.
+All ten examples (`Aes`, `Backends`, `CryptoSelfTest`, `EcdhKeyExchange`,
+`EcdsaSignVerify`, `HkdfSha256`, `HmacSha256`, `RandomBytes`, `SdCryptoSmoke`,
+`Sha256`) build clean at ~13–15% flash on board1 (`bootloader=autonosd`).
 
 ## 2. Flash over UF2 (normal path, no J-Link)
 

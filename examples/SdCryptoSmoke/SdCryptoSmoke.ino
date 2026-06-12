@@ -1,10 +1,9 @@
 /*
-  SdCryptoSmoke - CC310 crypto while SoftDevice layout is active.
+  SdCryptoSmoke - CC310 crypto with USB CDC active.
 
-  Every S140 ArduinoNRF sketch runs with the SoftDevice in flash below
-  __nrf_app_start. This smoke test prints that address, runs SHA-256 + HMAC in
-  setup(), prints RESULT: OK, then keeps hashing in loop() while USB serial
-  stays up.
+  Prints __nrf_app_start (0x1000 on MBR-only clones, 0x26000+ with S140),
+  runs SHA-256 + HMAC in setup(), prints RESULT: OK, then keeps hashing in
+  loop() while serial stays up.
 
   Open the Serial Monitor at 115200 baud.
 */
