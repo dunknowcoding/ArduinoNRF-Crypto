@@ -5,21 +5,21 @@ board: **AliExpress ProMicro nRF52840 clone** (app @ **`0x1000`**, MBR-only
 UF2/DFU). board1 in the lab has a SEGGER J-Link on SWD for J-Link upload at
 the correct link address.
 
-**Seeed XIAO nRF52840** is compile-only in CI until hardware is available.
+**Seeed XIAO nRF52840** is compile-only locally until hardware is available.
 
-## Verified (board1, CC310 backend) — v0.3.4
+## Verified (board1, CC310 backend) — v0.4.0
 
 | Test | Result | Notes |
 |------|--------|-------|
-| `examples/CryptoSelfTest` | **17/17 PASS** | incl. X25519, RSA-2048 PKCS#1 SHA-256, ChaCha20-Poly1305 |
-| `examples/BleCryptoStress` | **RESULT: OK** | NimBLE advertising + 3000× SHA-256/HMAC while polling BLE |
+| `examples/CryptoSelfTest` | **20/20 PASS** | incl. Ed25519, RSA export/VerifyPub, X25519, ChaCha20-Poly1305 |
+| `examples/BleCryptoStress` | **RESULT: OK** | NimBLE + 3000× SHA-256/HMAC; NUS write/onReceive when connected |
 | `SdCryptoSmoke` | **PASS** | MBR-only @ `0x1000` |
 | `CC310Smoke` (shim) | **PASS** | incl. SHA-512 KAT |
 
 Expected `CryptoSelfTest` tail:
 
 ```
-summary: 17 passed, 0 failed, 0 skipped
+summary: 20 passed, 0 failed, 0 skipped
 RESULT: OK
 ```
 

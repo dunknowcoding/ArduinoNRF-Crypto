@@ -46,6 +46,10 @@ static constexpr size_t kP256PubLen = 64;   // X||Y uncompressed, no 0x04 prefix
 static constexpr size_t kP256SigLen = 64;   // R||S
 static constexpr size_t kP256SharedLen = 32;
 static constexpr size_t kX25519KeyLen = 32;
+static constexpr size_t kEd25519PubLen = 32;
+static constexpr size_t kEd25519SecLen = 64;
+static constexpr size_t kEd25519SigLen = 64;
+static constexpr size_t kRsa2048ModLen = 256;
 static constexpr size_t kRsa2048SigLen = 256;
 
 // Human-readable name for a status, handy in sketches and tests.

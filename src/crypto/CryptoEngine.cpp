@@ -260,6 +260,60 @@ CryptoStatus CryptoEngine::rsaPkcs1Sha256Verify(const uint8_t* msg, size_t msgLe
   return backend_->rsaPkcs1Sha256Verify(msg, msgLen, sig);
 }
 
+CryptoStatus CryptoEngine::rsa2048ExportPubKey(uint8_t mod[kRsa2048ModLen],
+                                               uint16_t* modLen,
+                                               uint8_t* pubExp,
+                                               uint16_t* pubExpLen) {
+  NC_GUARD();
+  if (!mod || !modLen || !pubExp || !pubExpLen) return CryptoStatus::BadParam;
+  return backend_->rsa2048ExportPubKey(mod, modLen, pubExp, pubExpLen);
+}
+
+CryptoStatus CryptoEngine::rsaPkcs1Sha256VerifyPub(
+    const uint8_t* mod, uint16_t modLen, const uint8_t* pubExp,
+    uint16_t pubExpLen, const uint8_t* msg, size_t msgLen,
+    const uint8_t sig[kRsa2048SigLen]) {
+  NC_GUARD();
+  if (!mod || !pubExp || !sig || modLen == 0 || pubExpLen == 0)
+    return CryptoStatus::BadParam;
+  if (msgLen != 0 && msg == nullptr) return CryptoStatus::BadParam;
+  return backend_->rsaPkcs1Sha256VerifyPub(mod, modLen, pubExp, pubExpLen, msg,
+                                          msgLen, sig);
+}
+
+CryptoStatus CryptoEngine::ed25519GenerateKey(uint8_t secret[kEd25519SecLen],
+                                            uint8_t pub[kEd25519PubLen]) {
+  NC_GUARD();
+  if (!secret || !pub) return CryptoStatus::BadParam;
+  return backend_->ed25519GenerateKey(secret, pub);
+}
+
+CryptoStatus CryptoEngine::ed25519DeriveFromSeed(const uint8_t seed[32],
+                                                 uint8_t secret[kEd25519SecLen],
+                                                 uint8_t pub[kEd25519PubLen]) {
+  NC_GUARD();
+  if (!seed || !secret || !pub) return CryptoStatus::BadParam;
+  return backend_->ed25519DeriveFromSeed(seed, secret, pub);
+}
+
+CryptoStatus CryptoEngine::ed25519Sign(const uint8_t secret[kEd25519SecLen],
+                                       const uint8_t* msg, size_t msgLen,
+                                       uint8_t sig[kEd25519SigLen]) {
+  NC_GUARD();
+  if (!secret || !sig) return CryptoStatus::BadParam;
+  if (msgLen != 0 && msg == nullptr) return CryptoStatus::BadParam;
+  return backend_->ed25519Sign(secret, msg, msgLen, sig);
+}
+
+CryptoStatus CryptoEngine::ed25519Verify(const uint8_t pub[kEd25519PubLen],
+                                         const uint8_t* msg, size_t msgLen,
+                                         const uint8_t sig[kEd25519SigLen]) {
+  NC_GUARD();
+  if (!pub || !sig) return CryptoStatus::BadParam;
+  if (msgLen != 0 && msg == nullptr) return CryptoStatus::BadParam;
+  return backend_->ed25519Verify(pub, msg, msgLen, sig);
+}
+
 }  // namespace ncrypto
 
 ncrypto::CryptoEngine Crypto;

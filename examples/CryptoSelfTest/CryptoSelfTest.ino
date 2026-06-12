@@ -7,8 +7,8 @@
   per item and a final summary.
 
   On a board with CC310 vendored every line should read PASS. On the bare
-  on-chip fallback, GCM / ChaCha20-Poly1305 / P-256 / X25519 / RSA / ECDH read SKIP
-  (Unsupported) - that is expected, not a failure.
+  on-chip fallback, GCM / ChaCha20-Poly1305 / P-256 / X25519 / Ed25519 / RSA /
+  ECDH read SKIP (Unsupported) - that is expected, not a failure.
 
   Open the Serial Monitor at 115200 baud.
 */
@@ -327,7 +327,8 @@ void runTests() {
   // RSA-2048 PKCS#1 v1.5 + SHA-256 sign/verify round-trip
   {
     static const uint8_t kRsaMsg[] = {'r', 's', 'a', '-', 't', 'e', 's', 't'};
-    uint8_t sig[256];
+    uint8_t sig[256], mod[256], exp[4];
+    uint16_t modLen = sizeof(mod), expLen = sizeof(exp);
     CryptoStatus kg = Crypto.rsa2048GenerateKey();
     if (kg == CryptoStatus::Ok) {
       CryptoStatus ss = Crypto.rsaPkcs1Sha256Sign(kRsaMsg, sizeof(kRsaMsg), sig);
@@ -337,12 +338,85 @@ void runTests() {
         sig[0] ^= 0x01;
         bool rejects = (Crypto.rsaPkcs1Sha256Verify(kRsaMsg, sizeof(kRsaMsg), sig) !=
                         CryptoStatus::Ok);
+        sig[0] ^= 0x01;
         report("RSA-2048 PKCS#1 SHA-256 sign/verify", good && rejects);
+
+        CryptoStatus ex = Crypto.rsa2048ExportPubKey(mod, &modLen, exp, &expLen);
+        if (ex == CryptoStatus::Ok) {
+          bool viaPub = (Crypto.rsaPkcs1Sha256VerifyPub(mod, modLen, exp, expLen,
+                                                      kRsaMsg, sizeof(kRsaMsg),
+                                                      sig) == CryptoStatus::Ok);
+          report("RSA-2048 export pub + VerifyPub", viaPub);
+        } else if (ex == CryptoStatus::Unsupported) {
+          skip("RSA-2048 export pub + VerifyPub", ex);
+        } else {
+          report("RSA-2048 export pub + VerifyPub", false);
+        }
       } else {
         skip("RSA-2048 PKCS#1 SHA-256 sign/verify", ss);
+        skip("RSA-2048 export pub + VerifyPub", ss);
       }
     } else {
       skip("RSA-2048 PKCS#1 SHA-256 sign/verify", kg);
+      skip("RSA-2048 export pub + VerifyPub", kg);
+    }
+  }
+
+  // Ed25519 RFC 8032 test vector #1 (empty message)
+  {
+    static const uint8_t kEdSeed[32] = {
+        0x9d, 0x61, 0xb1, 0x9d, 0xef, 0xfd, 0x5a, 0x60, 0xba, 0x84, 0x4a, 0xf4,
+        0x92, 0xec, 0x2c, 0xc4, 0x44, 0x49, 0xc5, 0x69, 0x7b, 0x32, 0x69, 0x19,
+        0x70, 0x3b, 0xac, 0x03, 0x1c, 0xae, 0x7f, 0x60};
+    static const uint8_t kEdPub[32] = {
+        0xd7, 0x5a, 0x98, 0x01, 0x82, 0xb1, 0x0a, 0xb7, 0xd5, 0x4b, 0xfe, 0xd3,
+        0xc9, 0x64, 0x07, 0x3a, 0x0e, 0xe1, 0x72, 0xf3, 0xda, 0xa6, 0x23, 0x25,
+        0xaf, 0x02, 0x1a, 0x68, 0xf7, 0x07, 0x51, 0x1a};
+    static const uint8_t kEdSig[64] = {
+        0xe5, 0x56, 0x43, 0x00, 0xc3, 0x60, 0xac, 0x72, 0x90, 0x86, 0xe2, 0xcc,
+        0x80, 0x6e, 0x82, 0x8a, 0x84, 0x87, 0x7f, 0x1e, 0xb8, 0xe5, 0xd9, 0x74,
+        0xd8, 0x73, 0xe0, 0x65, 0x22, 0x49, 0x01, 0x55, 0x5f, 0xb8, 0x82, 0x15,
+        0x90, 0xa3, 0x3b, 0xac, 0xc6, 0x1e, 0x39, 0x70, 0x1c, 0xf9, 0xb4, 0x6b,
+        0xd2, 0x5b, 0xf5, 0xf0, 0x59, 0x5b, 0xbe, 0x24, 0x65, 0x51, 0x41, 0x43,
+        0x8e, 0x7a, 0x10, 0x0b};
+    uint8_t secret[64], pub[32], sig[64];
+    CryptoStatus ds = Crypto.ed25519DeriveFromSeed(kEdSeed, secret, pub);
+    if (ds == CryptoStatus::Ok) {
+      bool pkOk = equal(pub, kEdPub, 32);
+      bool katOk =
+          (Crypto.ed25519Verify(kEdPub, nullptr, 0, kEdSig) == CryptoStatus::Ok);
+      CryptoStatus ss = Crypto.ed25519Sign(secret, nullptr, 0, sig);
+      bool signOk = (ss == CryptoStatus::Ok) &&
+                    equal(sig, kEdSig, 64) &&
+                    (Crypto.ed25519Verify(pub, nullptr, 0, sig) == CryptoStatus::Ok);
+      report("Ed25519 RFC 8032 #1 (seed/verify/sign)", pkOk && katOk && signOk);
+    } else if (ds == CryptoStatus::Unsupported) {
+      skip("Ed25519 RFC 8032 #1 (seed/verify/sign)", ds);
+    } else {
+      report("Ed25519 RFC 8032 #1 (seed/verify/sign)", false);
+    }
+  }
+
+  // Ed25519 random keygen round-trip
+  {
+    uint8_t secret[64], pub[32], sig[64];
+    static const uint8_t kEdMsg[] = {'e', 'd', '2', '5', '5', '1', '9'};
+    CryptoStatus kg = Crypto.ed25519GenerateKey(secret, pub);
+    if (kg == CryptoStatus::Ok) {
+      CryptoStatus ss = Crypto.ed25519Sign(secret, kEdMsg, sizeof(kEdMsg), sig);
+      if (ss == CryptoStatus::Ok) {
+        bool good = (Crypto.ed25519Verify(pub, kEdMsg, sizeof(kEdMsg), sig) ==
+                     CryptoStatus::Ok);
+        sig[0] ^= 0x01;
+        bool rejects =
+            (Crypto.ed25519Verify(pub, kEdMsg, sizeof(kEdMsg), sig) !=
+             CryptoStatus::Ok);
+        report("Ed25519 sign/verify round-trip", good && rejects);
+      } else {
+        skip("Ed25519 sign/verify round-trip", ss);
+      }
+    } else {
+      skip("Ed25519 sign/verify round-trip", kg);
     }
   }
 

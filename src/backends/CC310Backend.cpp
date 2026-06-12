@@ -54,6 +54,8 @@
 #include "../cc310/crys_ec_mont_api.h"
 #include "../cc310/crys_rsa_schemes.h"
 #include "../cc310/crys_rsa_kg.h"
+#include "../cc310/crys_rsa_build.h"
+#include "../cc310/crys_ec_edw_api.h"
 #include "../cc310/ocrypto_aes_gcm.h"
 #include "../cc310/ocrypto_chacha20_poly1305.h"
 #include "../cc310/ocrypto_sha384.h"
@@ -92,6 +94,7 @@ static CRYS_RSAKGData_t g_rsaKgData;
 static CRYS_RSAPrivUserContext_t g_rsaSignCtx;
 static CRYS_RSAPubUserContext_t g_rsaVerifyCtx;
 static CRYS_ECMONT_TempBuff_t g_ecMontTmp;
+static CRYS_ECEDW_TempBuff_t g_ed25519Tmp;
 static bool g_rsaReady = false;
 
 CryptoStatus bounceMsg(const uint8_t* in, size_t len, uint8_t** out) {
@@ -578,6 +581,106 @@ CryptoStatus CC310Backend::rsaPkcs1Sha256Verify(const uint8_t* msg, size_t msgLe
   return e == CRYS_OK ? CryptoStatus::Ok : CryptoStatus::AuthFailed;
 }
 
+CryptoStatus CC310Backend::rsa2048ExportPubKey(uint8_t mod[kRsa2048ModLen],
+                                               uint16_t* modLen,
+                                               uint8_t* pubExp,
+                                               uint16_t* pubExpLen) {
+  if (!started_) return CryptoStatus::NotStarted;
+  if (!g_rsaReady || !modLen || !pubExpLen) return CryptoStatus::BadParam;
+  uint16_t mLen = kRsa2048ModLen;
+  uint16_t eLen = *pubExpLen;
+  if (CRYS_RSA_Get_PubKey(&g_rsaPub, pubExp, &eLen, mod, &mLen) != CRYS_OK)
+    return CryptoStatus::InternalError;
+  *modLen = mLen;
+  *pubExpLen = eLen;
+  return CryptoStatus::Ok;
+}
+
+CryptoStatus CC310Backend::rsaPkcs1Sha256VerifyPub(
+    const uint8_t* mod, uint16_t modLen, const uint8_t* pubExp,
+    uint16_t pubExpLen, const uint8_t* msg, size_t msgLen,
+    const uint8_t sig[kRsa2048SigLen]) {
+  if (!started_) return CryptoStatus::NotStarted;
+  if (!mod || !pubExp || !sig || modLen == 0 || pubExpLen == 0)
+    return CryptoStatus::BadParam;
+  if (modLen > kRsa2048ModLen) return CryptoStatus::BadParam;
+  uint8_t modRam[kRsa2048ModLen];
+  uint8_t expRam[4];
+  memcpy(modRam, mod, modLen);
+  memcpy(expRam, pubExp, pubExpLen);
+  static CRYS_RSAUserPubKey_t pub;
+  if (CRYS_RSA_Build_PubKey(&pub, expRam, pubExpLen, modRam, modLen) != CRYS_OK)
+    return CryptoStatus::BadParam;
+  uint8_t* bounce = nullptr;
+  CryptoStatus bs = bounceMsg(msg, msgLen, &bounce);
+  if (bs != CryptoStatus::Ok) return bs;
+  uint8_t sigRam[kRsa2048SigLen];
+  memcpy(sigRam, sig, sizeof(sigRam));
+  CRYSError_t e = CRYS_RSA_PKCS1v15_Verify(
+      &g_rsaVerifyCtx, &pub, CRYS_RSA_HASH_SHA256_mode, bounce,
+      static_cast<uint32_t>(msgLen), sigRam);
+  return e == CRYS_OK ? CryptoStatus::Ok : CryptoStatus::AuthFailed;
+}
+
+CryptoStatus CC310Backend::ed25519GenerateKey(uint8_t secret[kEd25519SecLen],
+                                              uint8_t pub[kEd25519PubLen]) {
+  if (!started_) return CryptoStatus::NotStarted;
+  size_t secLen = kEd25519SecLen;
+  size_t pubLen = kEd25519PubLen;
+  if (CRYS_ECEDW_KeyPair(secret, &secLen, pub, &pubLen, &g_rndState, kRndFunc,
+                         &g_ed25519Tmp) != CRYS_OK)
+    return CryptoStatus::InternalError;
+  return CryptoStatus::Ok;
+}
+
+CryptoStatus CC310Backend::ed25519DeriveFromSeed(const uint8_t seed[32],
+                                                 uint8_t secret[kEd25519SecLen],
+                                                 uint8_t pub[kEd25519PubLen]) {
+  if (!started_) return CryptoStatus::NotStarted;
+  uint8_t seedRam[32];
+  memcpy(seedRam, seed, 32);
+  size_t secLen = kEd25519SecLen;
+  size_t pubLen = kEd25519PubLen;
+  if (CRYS_ECEDW_SeedKeyPair(seedRam, 32, secret, &secLen, pub, &pubLen,
+                             &g_ed25519Tmp) != CRYS_OK)
+    return CryptoStatus::InternalError;
+  return CryptoStatus::Ok;
+}
+
+CryptoStatus CC310Backend::ed25519Sign(const uint8_t secret[kEd25519SecLen],
+                                       const uint8_t* msg, size_t msgLen,
+                                       uint8_t sig[kEd25519SigLen]) {
+  if (!started_) return CryptoStatus::NotStarted;
+  if (!sig) return CryptoStatus::BadParam;
+  uint8_t secRam[kEd25519SecLen];
+  memcpy(secRam, secret, sizeof(secRam));
+  uint8_t* bounce = nullptr;
+  CryptoStatus bs = bounceMsg(msg, msgLen, &bounce);
+  if (bs != CryptoStatus::Ok) return bs;
+  size_t sigLen = kEd25519SigLen;
+  if (CRYS_ECEDW_Sign(sig, &sigLen, bounce, msgLen, secRam, kEd25519SecLen,
+                      &g_ed25519Tmp) != CRYS_OK)
+    return CryptoStatus::InternalError;
+  return CryptoStatus::Ok;
+}
+
+CryptoStatus CC310Backend::ed25519Verify(const uint8_t pub[kEd25519PubLen],
+                                         const uint8_t* msg, size_t msgLen,
+                                         const uint8_t sig[kEd25519SigLen]) {
+  if (!started_) return CryptoStatus::NotStarted;
+  uint8_t pubRam[kEd25519PubLen];
+  uint8_t sigRam[kEd25519SigLen];
+  memcpy(pubRam, pub, sizeof(pubRam));
+  memcpy(sigRam, sig, sizeof(sigRam));
+  uint8_t* bounce = nullptr;
+  CryptoStatus bs = bounceMsg(msg, msgLen, &bounce);
+  if (bs != CryptoStatus::Ok) return bs;
+  CRYSError_t e =
+      CRYS_ECEDW_Verify(sigRam, kEd25519SigLen, pubRam, kEd25519PubLen, bounce,
+                        msgLen, &g_ed25519Tmp);
+  return e == CRYS_OK ? CryptoStatus::Ok : CryptoStatus::AuthFailed;
+}
+
 #else  // ---- stub: vendored CRYS binaries absent ----
 
 bool CC310Backend::begin() { return false; }
@@ -607,6 +710,12 @@ CryptoStatus CC310Backend::x25519Shared(const uint8_t*, const uint8_t*, uint8_t*
 CryptoStatus CC310Backend::rsa2048GenerateKey() { return CryptoStatus::HardwareMissing; }
 CryptoStatus CC310Backend::rsaPkcs1Sha256Sign(const uint8_t*, size_t, uint8_t*) { return CryptoStatus::HardwareMissing; }
 CryptoStatus CC310Backend::rsaPkcs1Sha256Verify(const uint8_t*, size_t, const uint8_t*) { return CryptoStatus::HardwareMissing; }
+CryptoStatus CC310Backend::rsa2048ExportPubKey(uint8_t*, uint16_t*, uint8_t*, uint16_t*) { return CryptoStatus::HardwareMissing; }
+CryptoStatus CC310Backend::rsaPkcs1Sha256VerifyPub(const uint8_t*, uint16_t, const uint8_t*, uint16_t, const uint8_t*, size_t, const uint8_t*) { return CryptoStatus::HardwareMissing; }
+CryptoStatus CC310Backend::ed25519GenerateKey(uint8_t*, uint8_t*) { return CryptoStatus::HardwareMissing; }
+CryptoStatus CC310Backend::ed25519DeriveFromSeed(const uint8_t*, uint8_t*, uint8_t*) { return CryptoStatus::HardwareMissing; }
+CryptoStatus CC310Backend::ed25519Sign(const uint8_t*, const uint8_t*, size_t, uint8_t*) { return CryptoStatus::HardwareMissing; }
+CryptoStatus CC310Backend::ed25519Verify(const uint8_t*, const uint8_t*, size_t, const uint8_t*) { return CryptoStatus::HardwareMissing; }
 
 #endif  // NIUS_CRYPTO_HAS_CC310
 

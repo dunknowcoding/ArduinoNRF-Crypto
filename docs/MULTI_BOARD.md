@@ -1,12 +1,12 @@
-# Multi-board compile matrix
+# Multi-board support
 
-NiusCrypto targets all `nrf52` boards in the ArduinoNRF package. CI compiles
-every example against at least:
+NiusCrypto targets all `nrf52` boards in the ArduinoNRF package. Local
+compile checks should cover at least:
 
 | FQBN | Role |
 |------|------|
-| `arduinonrf:nrf52:promicro_nrf52840:bootloader=autonosd` | **HW reference (board1)** — clone @ `0x1000`, J-Link + COM11 |
-| `arduinonrf:nrf52:xiao_nrf52840` | Different UF2 layout (`0x27000` S140 v7); compile-only in CI |
+| `arduinonrf:nrf52:promicro_nrf52840:bootloader=autonosd` | **HW reference (board1)** — clone @ `0x1000`, J-Link + COM18 |
+| `arduinonrf:nrf52:xiao_nrf52840` | Different UF2 layout (`0x27000` S140 v7); compile-only until HW available |
 
 ## Local compile (any board)
 
@@ -23,7 +23,7 @@ CC310 hardware tests require vendored blobs on the build machine (`setup_vendore
 
 | Board | CryptoSelfTest | CC310Smoke | Notes |
 |-------|----------------|------------|-------|
-| ProMicro nRF52840 (board1) | **17/17 PASS** | **BleCryptoStress OK** | MBR-only @ `0x1000`, COM18 |
+| ProMicro nRF52840 (board1) | **20/20 PASS** | **BleCryptoStress OK** | MBR-only @ `0x1000`, COM18 |
 | Seeed XIAO nRF52840 | compile-only | compile-only | Awaiting HW in lab |
 
 When a second board is available, run the local verify script with an adjusted FQBN:

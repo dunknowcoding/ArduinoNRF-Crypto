@@ -213,7 +213,7 @@ Public keys are 64 bytes (`X‖Y`), signatures 64 bytes (`R‖S`), private scala
 | `HmacSha256` | RFC 4231 HMAC-SHA-256 known-answer demo |
 | `Aes` | CBC / CTR / GCM encrypt-decrypt round-trips |
 | `ChaChaPoly1305` | RFC 8439 AEAD encrypt/decrypt known-answer demo |
-| `BleCryptoStress` | NimBLE advertising + CC310 SHA/HMAC loop stress |
+| `BleCryptoStress` | NimBLE advertising + CC310 SHA/HMAC loop; NUS GATT when connected |
 | `HkdfSha256` | HKDF-SHA-256 key derivation (RFC 5869) |
 | `EcdsaSignVerify` | P-256 key gen, sign, verify, tamper-detect |
 | `EcdhKeyExchange` | P-256 shared-secret agreement between two parties |
@@ -223,7 +223,7 @@ Public keys are 64 bytes (`X‖Y`), signatures 64 bytes (`R‖S`), private scala
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — layers, backend selection, ABI notes
 - [docs/ROADMAP.md](docs/ROADMAP.md) — shipped vs planned CRYS capabilities
 - [docs/SOFTDEVICE_COEXISTENCE.md](docs/SOFTDEVICE_COEXISTENCE.md) — CC310 + S140 notes
-- [docs/MULTI_BOARD.md](docs/MULTI_BOARD.md) — CI matrix and HW status per board
+- [docs/MULTI_BOARD.md](docs/MULTI_BOARD.md) — multi-board compile notes and HW status
 - [docs/VENDORING.md](docs/VENDORING.md) — vendoring scripts and Nordic binary sources
 - [docs/VALIDATION.md](docs/VALIDATION.md) — hardware verification log (ProMicro / board1)
 - [docs/BOARD_BRINGUP.md](docs/BOARD_BRINGUP.md) — compile, UF2 flash, J-Link recovery

@@ -206,6 +206,43 @@ class CryptoBackend {
                                             const uint8_t sig[kRsa2048SigLen]) {
     (void)msg; (void)msgLen; (void)sig; return CryptoStatus::Unsupported;
   }
+  virtual CryptoStatus rsa2048ExportPubKey(uint8_t mod[kRsa2048ModLen],
+                                         uint16_t* modLen,
+                                         uint8_t* pubExp, uint16_t* pubExpLen) {
+    (void)mod; (void)modLen; (void)pubExp; (void)pubExpLen;
+    return CryptoStatus::Unsupported;
+  }
+  virtual CryptoStatus rsaPkcs1Sha256VerifyPub(const uint8_t* mod, uint16_t modLen,
+                                               const uint8_t* pubExp,
+                                               uint16_t pubExpLen,
+                                               const uint8_t* msg, size_t msgLen,
+                                               const uint8_t sig[kRsa2048SigLen]) {
+    (void)mod; (void)modLen; (void)pubExp; (void)pubExpLen;
+    (void)msg; (void)msgLen; (void)sig;
+    return CryptoStatus::Unsupported;
+  }
+
+  // ---- Ed25519 (CC310) ----
+
+  virtual CryptoStatus ed25519GenerateKey(uint8_t secret[kEd25519SecLen],
+                                          uint8_t pub[kEd25519PubLen]) {
+    (void)secret; (void)pub; return CryptoStatus::Unsupported;
+  }
+  virtual CryptoStatus ed25519DeriveFromSeed(const uint8_t seed[32],
+                                             uint8_t secret[kEd25519SecLen],
+                                             uint8_t pub[kEd25519PubLen]) {
+    (void)seed; (void)secret; (void)pub; return CryptoStatus::Unsupported;
+  }
+  virtual CryptoStatus ed25519Sign(const uint8_t secret[kEd25519SecLen],
+                                   const uint8_t* msg, size_t msgLen,
+                                   uint8_t sig[kEd25519SigLen]) {
+    (void)secret; (void)msg; (void)msgLen; (void)sig; return CryptoStatus::Unsupported;
+  }
+  virtual CryptoStatus ed25519Verify(const uint8_t pub[kEd25519PubLen],
+                                     const uint8_t* msg, size_t msgLen,
+                                     const uint8_t sig[kEd25519SigLen]) {
+    (void)pub; (void)msg; (void)msgLen; (void)sig; return CryptoStatus::Unsupported;
+  }
 };
 
 }  // namespace ncrypto

@@ -131,6 +131,25 @@ class CryptoEngine {
                                   uint8_t sig[kRsa2048SigLen]);
   CryptoStatus rsaPkcs1Sha256Verify(const uint8_t* msg, size_t msgLen,
                                     const uint8_t sig[kRsa2048SigLen]);
+  CryptoStatus rsa2048ExportPubKey(uint8_t mod[kRsa2048ModLen], uint16_t* modLen,
+                                   uint8_t* pubExp, uint16_t* pubExpLen);
+  CryptoStatus rsaPkcs1Sha256VerifyPub(const uint8_t* mod, uint16_t modLen,
+                                        const uint8_t* pubExp, uint16_t pubExpLen,
+                                        const uint8_t* msg, size_t msgLen,
+                                        const uint8_t sig[kRsa2048SigLen]);
+
+  /** Ed25519 sign/verify (CC310). secret is 64 bytes (CRYS seed||pub layout). */
+  CryptoStatus ed25519GenerateKey(uint8_t secret[kEd25519SecLen],
+                                  uint8_t pub[kEd25519PubLen]);
+  CryptoStatus ed25519DeriveFromSeed(const uint8_t seed[32],
+                                     uint8_t secret[kEd25519SecLen],
+                                     uint8_t pub[kEd25519PubLen]);
+  CryptoStatus ed25519Sign(const uint8_t secret[kEd25519SecLen],
+                           const uint8_t* msg, size_t msgLen,
+                           uint8_t sig[kEd25519SigLen]);
+  CryptoStatus ed25519Verify(const uint8_t pub[kEd25519PubLen],
+                             const uint8_t* msg, size_t msgLen,
+                             const uint8_t sig[kEd25519SigLen]);
 
   /** The active backend, or nullptr if not started (advanced use). */
   CryptoBackend* backend() const { return backend_; }
