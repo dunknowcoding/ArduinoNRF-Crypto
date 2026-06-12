@@ -1,5 +1,0 @@
-# Local bring-up: copy to vendor/hwverify/arduino-cli.yaml and edit paths.
-# (That file is git-ignored — machine-specific.)
-directories:
-  data: C:/Users/YOU/AppData/Local/Arduino15
-  user: F:/path/to/ArduinoNRF

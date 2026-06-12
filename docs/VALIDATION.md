@@ -15,9 +15,6 @@ the correct link address.
 | `SdCryptoSmoke` | **PASS** | `layout: no SoftDevice (MBR-only / 0x1000)`, `RESULT: OK` |
 | `CC310Smoke` (expanded shim) | **PASS** | incl. SHA-512 KAT; `RESULT: OK` |
 | J-Link upload | **PASS** | hex linked @ `0x1000`; wrong `0x26000` layout kills USB serial |
-| `backend: CC310` | **yes** | `hardware-accelerated: yes` on every run |
-| UF2 flash + USB serial | **PASS** | 1200-bps touch → NICENANO drive → copy `.uf2` → COM10/COM11 enumerate |
-| Full factory recovery | **PASS** | J-Link erase + `nice_nano_bootloader-0.6.0_s140_6.1.1.hex` when SoftDevice was missing |
 
 Expected `CryptoSelfTest` tail:
 
@@ -26,49 +23,32 @@ summary: 13 passed, 0 failed, 0 skipped
 RESULT: OK
 ```
 
-## CC310 compatibility shim (board1)
+## Local bring-up (`vendor/hwverify/` — not in git)
 
-`libraries/CC310/examples/CC310Smoke` forwards to NiusCrypto and checks TRNG,
-SHA-256/512, HMAC-SHA-256 (RFC 4231 #2), AES-128-CTR (NIST F.5.1), ECDSA P-256
-keygen/sign/verify, and ECDH shared-secret agreement. With binaries vendored it
-should print `RESULT: OK`.
+J-Link scripts, build output, and machine-specific `arduino-cli.yaml` live under
+**`vendor/hwverify/`** on your machine. That entire folder is **git-ignored and
+must not be pushed**.
 
-| Check | Expected |
-|-------|----------|
-| `begin` / `isAvailable` | OK / true |
-| `randomBytes` | OK + hex sample |
-| `sha256("abc")` | NIST match PASS |
-| `sha512("abc")` | NIST match PASS |
-| `hmacSha256` | RFC 4231 #2 PASS |
-| `aes128Ctr` | NIST F.5.1 PASS |
-| `ecdsaP256GenerateKey/Sign/Verify` | all OK |
-| `ecdhP256ComputeShared` (A↔B) | shared secret match PASS |
-
-## How to reproduce
-
-### One-shot (board1, J-Link)
-
-Scripts and J-Link helpers live in `extras/hwverify/` (Arduino `extras/` — ignored by
-arduino-lint and the IDE compiler):
+Typical contents (create/maintain locally):
 
 | File | Purpose |
 |------|---------|
-| `verify_board1.ps1` | Compile + J-Link flash + serial capture (full regression) |
+| `verify_board1.ps1` | Compile + J-Link flash + serial capture |
 | `capture_serial.py` | J-Link reset + read until `RESULT: OK` |
-| `capture_selftest.py` | Same, fixed for `CryptoSelfTest` only |
-| `arduino-cli.yaml.example` | Template; copy to `vendor/hwverify/arduino-cli.yaml` locally |
+| `arduino-cli.yaml` | Local core path (`directories.user` → ArduinoNRF) |
 | `justreset.jlink`, `flashbl.jlink`, … | J-Link commander snippets |
+| `_verify_board1/` | arduino-cli build output (disposable) |
 
-Build output goes to `vendor/hwverify/_verify_board1/` (git-ignored).
+Example one-shot (after vendoring CC310 blobs and creating the scripts locally):
 
 ```powershell
-# Optional one-time local config (machine paths):
-Copy-Item extras\hwverify\arduino-cli.yaml.example vendor\hwverify\arduino-cli.yaml
-# Edit vendor\hwverify\arduino-cli.yaml, then:
-powershell -File extras\hwverify\verify_board1.ps1
+$env:NIUS_BOARD1_COM = 'COM18'   # your data CDC port
+powershell -File vendor\hwverify\verify_board1.ps1
 ```
 
-Set `NIUS_BOARD1_COM` if the data port is not COM11 (e.g. `COM18` after re-enumeration).
+Default FQBN inside the script: `uploadmode=jlink,bootloader=autonosd` (app @ **0x1000**).
+
+## How to reproduce (manual)
 
 ### 1. Vendor binaries (once per machine)
 
@@ -80,7 +60,7 @@ python vendor/tools/setup_vendored.py
 
 ```powershell
 arduino-cli compile `
-  --fqbn arduinonrf:nrf52:promicro_nrf52840 `
+  --fqbn arduinonrf:nrf52:promicro_nrf52840:bootloader=autonosd,usbcdc=enabled `
   --library F:\path\to\ArduinoNRF-Crypto `
   --build-path F:\path\to\_build `
   F:\path\to\ArduinoNRF-Crypto\examples\CryptoSelfTest
@@ -89,13 +69,13 @@ arduino-cli compile `
 ### 3. Flash over UF2
 
 See [BOARD_BRINGUP.md](BOARD_BRINGUP.md). Quick path: 1200-bps touch on the app
-COM → copy `.uf2` to `NICENANO` → open data COM at 115200.
+COM → copy `.uf2` to the bootloader drive → open data COM at 115200.
 
 ### 4. CC310 shim smoke
 
 ```powershell
 arduino-cli compile `
-  --fqbn arduinonrf:nrf52:promicro_nrf52840 `
+  --fqbn arduinonrf:nrf52:promicro_nrf52840:bootloader=autonosd `
   --library F:\path\to\ArduinoNRF-Crypto `
   F:\path\to\ArduinoNRF\hardware\arduinonrf\nrf52\libraries\CC310\examples\CC310Smoke
 ```
@@ -110,3 +90,7 @@ See [BOARD_BRINGUP.md](BOARD_BRINGUP.md#4-recover-a-non-enumerating-board-j-link
 If compile fails with **cannot find -lnrf_cc310** after a Library Manager install,
 run `setup_vendored.py` or remove the `precompiled` / `ldflags` lines from
 `library.properties` for OnChip-only builds.
+
+If USB serial vanished after a J-Link session, you likely flashed a **0x26000**
+hex onto a **0x1000** board — recompile with `bootloader=autonosd` before blaming
+hardware.

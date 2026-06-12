@@ -26,10 +26,10 @@ CC310 hardware tests require vendored blobs on the build machine (`setup_vendore
 | ProMicro nRF52840 (board1) | **13/13 PASS** | **OK** | MBR-only clone @ `0x1000` |
 | Seeed XIAO nRF52840 | compile-only | compile-only | Awaiting HW in lab |
 
-When a second board is available, run:
+When a second board is available, run the local verify script with an adjusted FQBN:
 
 ```powershell
-powershell -File extras\hwverify\verify_board1.ps1 -Fqbn 'arduinonrf:nrf52:xiao_nrf52840:uploadmode=jlink'
+powershell -File vendor\hwverify\verify_board1.ps1 -Fqbn 'arduinonrf:nrf52:xiao_nrf52840:uploadmode=jlink'
 ```
 
 (adjust `-ComPort` for that board's data CDC).

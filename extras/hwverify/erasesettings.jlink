@@ -1,6 +1,0 @@
-r
-h
-erase 0x000FF000 0x000FFFFF
-r
-g
-q

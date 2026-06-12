@@ -116,11 +116,10 @@ This is the verified bring-up state of this library on real hardware.
 
 ### One-shot board1 verify (J-Link + COM11)
 
-When board1 has a SEGGER J-Link on SWD and the data port on `COM11`:
+When board1 has a SEGGER J-Link on SWD, run the local script (not in git):
 
 ```powershell
-cd F:\path\to\ArduinoNRF-Crypto
-powershell -NoProfile -ExecutionPolicy Bypass -File extras\hwverify\verify_board1.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File vendor\hwverify\verify_board1.ps1
 ```
 
 Default FQBN: `uploadmode=jlink,bootloader=autonosd` (app @ **0x1000**). This
@@ -169,7 +168,7 @@ g
 qc
 ```
 
-Ready-made J-Link scripts live in `extras/hwverify/` (`flashbl.jlink`,
+Ready-made J-Link scripts (local only) live under `vendor/hwverify/` (`flashbl.jlink`,
 `erasesettings.jlink`, `flash.jlink`, `read_results.jlink`). That folder and its
 build artifacts are git-ignored.
 

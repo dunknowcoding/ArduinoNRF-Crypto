@@ -1,7 +1,0 @@
-r
-h
-erase
-loadfile "C:\Users\felix\Documents\Arduino\hardware\arduinonrf\nrf52\bootloaders\nice_nano\nice_nano_bootloader-0.6.0_s140_6.1.1.hex"
-r
-g
-q

@@ -19,7 +19,7 @@ vendor/MANIFEST*.txt
 vendor/LICENSE-Nordic*.txt
 vendor/download/
 
-# Local hardware bring-up scratch (build output + machine-specific arduino-cli.yaml).
+# Local hardware bring-up only — never commit or push (see docs/VALIDATION.md).
 vendor/hwverify/
 
 # Local nRF5 SDK source tree (import scripts read from here; users download separately).
