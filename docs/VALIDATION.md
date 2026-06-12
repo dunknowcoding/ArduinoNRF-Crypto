@@ -7,19 +7,19 @@ the correct link address.
 
 **Seeed XIAO nRF52840** is compile-only in CI until hardware is available.
 
-## Verified (board1, CC310 backend) — v0.3.2
+## Verified (board1, CC310 backend) — v0.3.3
 
 | Test | Result | Notes |
 |------|--------|-------|
-| `examples/CryptoSelfTest` | **13/13 PASS** | FQBN `bootloader=autonosd` (app @ `0x1000`) |
+| `examples/CryptoSelfTest` | **15/15 PASS** | incl. ChaCha20-Poly1305 (RFC 8439); FQBN `bootloader=autonosd` |
 | `SdCryptoSmoke` | **PASS** | `layout: no SoftDevice (MBR-only / 0x1000)`, `RESULT: OK` |
 | `CC310Smoke` (expanded shim) | **PASS** | incl. SHA-512 KAT; `RESULT: OK` |
-| J-Link upload | **PASS** | hex linked @ `0x1000`; wrong `0x26000` layout kills USB serial |
+| J-Link upload | **PASS** | hex linked @ `0x1000`; data CDC **COM18** |
 
 Expected `CryptoSelfTest` tail:
 
 ```
-summary: 13 passed, 0 failed, 0 skipped
+summary: 15 passed, 0 failed, 0 skipped
 RESULT: OK
 ```
 

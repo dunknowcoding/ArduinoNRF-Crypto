@@ -1,0 +1,110 @@
+name: Compile CC310 (self-hosted)
+
+# Full link against libnrf_cc310.a + liboberon.a. Requires a machine with:
+#   - nRF5 SDK (CRYS) on disk
+#   - GitHub Actions self-hosted runner labeled: self-hosted, niuscrypto-cc310
+#
+# GitHub-hosted runners cannot run this job (Nordic blobs are not redistributable).
+# Until a self-hosted runner is registered, use workflow_dispatch only; do not
+# enable push trigger or the job will sit Queued.
+
+on:
+  workflow_dispatch:
+    inputs:
+      sdk_path:
+        description: "Override nRF5 SDK root (default: secrets.NRF5_SDK_PATH or vendor/nRF5SDK)"
+        required: false
+        type: string
+
+jobs:
+  compile-cc310:
+    runs-on: [self-hosted, niuscrypto-cc310]
+    steps:
+      - name: Checkout NiusCrypto
+        uses: actions/checkout@v4
+
+      - name: Checkout ArduinoNRF core
+        uses: actions/checkout@v4
+        with:
+          repository: dunknowcoding/ArduinoNRF
+          path: ArduinoNRF
+
+      - name: Resolve nRF5 SDK path
+        id: sdk
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK="${{ inputs.sdk_path }}"
+          if [ -z "$SDK" ]; then SDK="${{ secrets.NRF5_SDK_PATH }}"; fi
+          if [ -z "$SDK" ] && compgen -G "vendor/nRF5SDK/nRF5_SDK_*" > /dev/null; then
+            SDK="$(ls -d vendor/nRF5SDK/nRF5_SDK_* | tail -1)"
+          fi
+          if [ -z "$SDK" ] || [ ! -d "$SDK/external/nrf_cc310" ]; then
+            echo "::error::Set secrets.NRF5_SDK_PATH or vendor/nRF5SDK/nRF5_SDK_* on the runner"
+            exit 1
+          fi
+          echo "path=$SDK" >> "$GITHUB_OUTPUT"
+          echo "Using SDK: $SDK"
+
+      - name: Vendor CRYS + Oberon blobs
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 vendor/tools/setup_vendored.py "${{ steps.sdk.outputs.path }}"
+          test -s src/cortex-m4/libnrf_cc310.a
+          test -s src/cortex-m4/liboberon.a
+          ls -la src/cortex-m4/
+
+      - name: Install arduino-cli
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! command -v arduino-cli >/dev/null 2>&1; then
+            curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh
+            echo "$PWD/bin" >> "$GITHUB_PATH"
+          fi
+          arduino-cli version
+
+      - name: Install ArduinoNRF core (local)
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.arduino15/packages/arduinonrf/hardware/nrf52/0.0.0"
+          cp -r ArduinoNRF/hardware/arduinonrf/nrf52/* \
+            "$HOME/.arduino15/packages/arduinonrf/hardware/nrf52/0.0.0/"
+          arduino-cli core update-index
+          arduino-cli core install arduinonrf:nrf52
+
+      - name: Compile CC310-linked examples (ProMicro + XIAO)
+        shell: bash
+        run: |
+          set -euo pipefail
+          LIB="$PWD"
+          SKETCHS=(
+            examples/CryptoSelfTest
+            examples/ChaChaPoly1305
+            examples/SdCryptoSmoke
+            ArduinoNRF/hardware/arduinonrf/nrf52/libraries/CC310/examples/CC310Smoke
+          )
+          for board in promicro_nrf52840 xiao_nrf52840; do
+            FQBN="arduinonrf:nrf52:${board}"
+            for sk in "${SKETCHS[@]}"; do
+              name="$(basename "$sk")"
+              build="build-cc310-${board}-${name}"
+              echo "== ${FQBN} :: ${name} =="
+              log="${build}.log"
+              arduino-cli compile --fqbn "$FQBN" --library "$LIB" \
+                --build-path "$build" "$sk" 2>&1 | tee "$log"
+              grep -q "Using precompiled library" "$log" || {
+                echo "::error::Expected CC310/Oberon precompiled link for ${name} on ${board}"
+                exit 1
+              }
+              mapfile="$(find "$build" -name '*.ino.map' | head -1)"
+              if [ -n "$mapfile" ]; then
+                grep -qE 'libnrf_cc310|liboberon' "$mapfile" || {
+                  echo "::error::Map missing CC310/Oberon archives: $mapfile"
+                  exit 1
+                }
+              fi
+            done
+          done

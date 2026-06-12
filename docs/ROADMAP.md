@@ -23,7 +23,7 @@ compile-only until HW is available.
 |----------|------|-------|
 | Low | **RSA** | CRYS RSA; large surface, defer until needed |
 | Low | **Curve25519 / Ed25519** | CRYS ECP types exist; separate from P-256 path |
-| Ops | **Self-hosted CI + blobs** | Full CC310 link test on a runner with local SDK import |
+| Ops | **Self-hosted CI + blobs** | Workflow `compile-cc310-selfhosted.yml`; register runner + `NRF5_SDK_PATH` |
 | Ops | **XIAO HW smoke** | CI compile-only today; HW when board available |
 | Ops | **NimBLE + Crypto concurrency** | Stress CC310 while SoftDevice BLE is active (board1) |
 

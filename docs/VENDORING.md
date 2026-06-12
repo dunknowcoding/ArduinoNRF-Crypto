@@ -8,7 +8,7 @@ committed):
 | Archive | Provides | Source | Imported by |
 |---------|----------|--------|-------------|
 | `libnrf_cc310.a` | CRYS runtime: SHA-256, **HMAC-SHA-256**, AES-CBC/CTR, ECDSA/ECDH P-256, TRNG — **on CC310 hardware** | local **nRF5 SDK 17.x** | `vendor/tools/import_cc310_sdk.py` |
-| `liboberon.a` | AES-128-**GCM** only (CRYS has no GCM) | public **nrfxlib** (no login) | `vendor/tools/fetch_cc310.py` (via `setup_vendored.py`) |
+| `liboberon.a` | AES-128-**GCM**, **ChaCha20-Poly1305** (CRYS has no GCM / ChaPoly AEAD) | public **nrfxlib** (no login) | `vendor/tools/fetch_cc310.py` (via `setup_vendored.py`) |
 
 `library.properties` already carries the matching link directives:
 
@@ -83,6 +83,23 @@ The ArduinoNRF core builds with the **soft-float ABI** (see
 [ARCHITECTURE.md](ARCHITECTURE.md#float-abi-important)). Both importers select
 the `cortex-m4/soft-float` variants. Do not substitute hard-float archives — the
 mix fails to link or faults at runtime.
+
+## Self-hosted CI (full CC310 link)
+
+GitHub-hosted runners cannot hold the login-gated nRF5 SDK, so **full** link tests
+(CRYS + Oberon, `Using precompiled library` in the build log) run on a
+[self-hosted runner](https://docs.github.com/en/actions/hosting-your-own-runners/managing-self-hosted-runners/about-self-hosted-runners):
+
+1. Install nRF5 SDK 17.x, Python 3, and `arduino-cli` on the runner machine.
+2. Register the runner on `dunknowcoding/ArduinoNRF-Crypto` with labels:
+   **`self-hosted`**, **`niuscrypto-cc310`**
+3. Set repository secret **`NRF5_SDK_PATH`** to the SDK root (or place SDK under
+   `vendor/nRF5SDK/nRF5_SDK_*` on the runner).
+4. Run **Actions → Compile CC310 (self-hosted) → Run workflow**.
+
+The workflow vendors blobs via `setup_vendored.py`, compiles `CryptoSelfTest`,
+`ChaChaPoly1305`, `SdCryptoSmoke`, and `CC310Smoke` for ProMicro + XIAO, and
+fails if the map file does not reference `libnrf_cc310` / `liboberon`.
 
 ## Reverting
 
