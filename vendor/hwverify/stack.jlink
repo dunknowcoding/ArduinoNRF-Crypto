@@ -1,0 +1,5 @@
+h
+regs
+mem32 0x2003FF80 48
+g
+q

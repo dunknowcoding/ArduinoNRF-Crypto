@@ -19,9 +19,15 @@ vendor/MANIFEST*.txt
 vendor/LICENSE-Nordic*.txt
 vendor/download/
 
-# Temporary hardware bring-up scratch (J-Link scripts, throwaway sketches, build output).
-# Do not commit — see README.md "What to commit".
-vendor/hwverify/
+# Hardware bring-up under vendor/hwverify/: ignore build scratch, keep scripts.
+vendor/hwverify/_*/
+vendor/hwverify/**/*.elf
+vendor/hwverify/**/*.hex
+vendor/hwverify/**/*.uf2
+vendor/hwverify/**/*.map
+vendor/hwverify/**/compile_commands.json
+vendor/hwverify/**/*.cache
+vendor/hwverify/**/*.d
 
 # Local nRF5 SDK source tree (import scripts read from here; users download separately).
 vendor/nRF5SDK/

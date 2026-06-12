@@ -75,11 +75,31 @@ CryptoStatus CryptoEngine::sha256(const uint8_t* in, size_t len,
   return backend_->sha256(in, len, out);
 }
 
+CryptoStatus CryptoEngine::sha384(const uint8_t* in, size_t len,
+                                  uint8_t out[kSha384Len]) {
+  NC_GUARD();
+  if (out == nullptr || (in == nullptr && len != 0)) return CryptoStatus::BadParam;
+  return backend_->sha384(in, len, out);
+}
+
 CryptoStatus CryptoEngine::sha512(const uint8_t* in, size_t len,
                                   uint8_t out[kSha512Len]) {
   NC_GUARD();
   if (out == nullptr || (in == nullptr && len != 0)) return CryptoStatus::BadParam;
   return backend_->sha512(in, len, out);
+}
+
+CryptoStatus CryptoEngine::hkdfSha256(const uint8_t* ikm, size_t ikmLen,
+                                      const uint8_t* salt, size_t saltLen,
+                                      const uint8_t* info, size_t infoLen,
+                                      uint8_t* okm, size_t okmLen) {
+  NC_GUARD();
+  if (okm == nullptr || okmLen == 0) return CryptoStatus::BadParam;
+  if (ikm == nullptr && ikmLen != 0) return CryptoStatus::BadParam;
+  if (salt == nullptr && saltLen != 0) return CryptoStatus::BadParam;
+  if (info == nullptr && infoLen != 0) return CryptoStatus::BadParam;
+  return backend_->hkdfSha256(ikm, ikmLen, salt, saltLen, info, infoLen, okm,
+                              okmLen);
 }
 
 CryptoStatus CryptoEngine::hmacSha256(const uint8_t* key, size_t keyLen,

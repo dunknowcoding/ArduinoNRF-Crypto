@@ -57,9 +57,23 @@ class CryptoBackend {
     (void)in; (void)len; (void)out; return CryptoStatus::Unsupported;
   }
 
+  virtual CryptoStatus sha384(const uint8_t* in, size_t len,
+                              uint8_t out[kSha384Len]) {
+    (void)in; (void)len; (void)out; return CryptoStatus::Unsupported;
+  }
+
   virtual CryptoStatus sha512(const uint8_t* in, size_t len,
                               uint8_t out[kSha512Len]) {
     (void)in; (void)len; (void)out; return CryptoStatus::Unsupported;
+  }
+
+  virtual CryptoStatus hkdfSha256(const uint8_t* ikm, size_t ikmLen,
+                                  const uint8_t* salt, size_t saltLen,
+                                  const uint8_t* info, size_t infoLen,
+                                  uint8_t* okm, size_t okmLen) {
+    (void)ikm; (void)ikmLen; (void)salt; (void)saltLen;
+    (void)info; (void)infoLen; (void)okm; (void)okmLen;
+    return CryptoStatus::Unsupported;
   }
 
   virtual CryptoStatus hmacSha256(const uint8_t* key, size_t keyLen,

@@ -11,8 +11,8 @@
   simply falls back to the on-chip backend and the whole library still builds.
 
   When active it provides the full CC310 feature set used by this library:
-  hardware TRNG, SHA-256, SHA-512, AES-128 (CBC / CTR / GCM) and ECDSA / ECDH on
-  NIST P-256.
+  hardware TRNG, SHA-256/384/512, HKDF-SHA-256, AES-128 (CBC / CTR / GCM) and
+  ECDSA / ECDH on NIST P-256.
 */
 #ifndef NIUSCRYPTO_CC310BACKEND_H
 #define NIUSCRYPTO_CC310BACKEND_H
@@ -31,8 +31,14 @@ class CC310Backend : public CryptoBackend {
   CryptoStatus randomBytes(uint8_t* buf, size_t len) override;
   CryptoStatus sha256(const uint8_t* in, size_t len,
                       uint8_t out[kSha256Len]) override;
+  CryptoStatus sha384(const uint8_t* in, size_t len,
+                      uint8_t out[kSha384Len]) override;
   CryptoStatus sha512(const uint8_t* in, size_t len,
                       uint8_t out[kSha512Len]) override;
+  CryptoStatus hkdfSha256(const uint8_t* ikm, size_t ikmLen,
+                          const uint8_t* salt, size_t saltLen,
+                          const uint8_t* info, size_t infoLen,
+                          uint8_t* okm, size_t okmLen) override;
   CryptoStatus hmacSha256(const uint8_t* key, size_t keyLen,
                           const uint8_t* msg, size_t msgLen,
                           uint8_t out[kSha256Len]) override;

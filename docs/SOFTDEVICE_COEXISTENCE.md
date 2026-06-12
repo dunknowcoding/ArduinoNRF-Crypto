@@ -11,11 +11,17 @@ soft-float build).
 
 ## What we verified (board1)
 
+board1 is an MBR-only clone (`__nrf_app_start == 0x1000`). CC310 CRYS calls
+succeed with the same USB CDC stack active — no S140 SoftDevice on this board.
+
 | Scenario | Result |
 |----------|--------|
-| `CryptoSelfTest` with S140 flashed | **10/10 PASS**, `backend: CC310` |
-| `CC310Smoke` (shim) with S140 | **RESULT: OK** |
-| `SdCryptoSmoke` — crypto loop while USB CDC active | **RESULT: OK** |
+| `CryptoSelfTest` @ `0x1000` | **13/13 PASS**, `backend: CC310` |
+| `CC310Smoke` (shim) | **RESULT: OK** |
+| `SdCryptoSmoke` — crypto loop while USB CDC active | **RESULT: OK**, prints layout |
+
+For S140 boards (`__nrf_app_start >= 0x26000`), the same sketches apply; pick
+the matching **Bootloader / DFU** menu before compile/upload.
 
 `examples/SdCryptoSmoke` prints `__nrf_app_start`, runs SHA-256 + HMAC in
 `setup()`, then repeats hashing in `loop()` while the USB serial port stays up.

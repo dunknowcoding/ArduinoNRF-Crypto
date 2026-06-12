@@ -53,7 +53,14 @@ class CryptoEngine {
 
   // ---- hash ----
   CryptoStatus sha256(const uint8_t* in, size_t len, uint8_t out[kSha256Len]);
+  CryptoStatus sha384(const uint8_t* in, size_t len, uint8_t out[kSha384Len]);
   CryptoStatus sha512(const uint8_t* in, size_t len, uint8_t out[kSha512Len]);
+
+  /** HKDF-SHA-256 (RFC 5869). CC310 only; salt/info may be nullptr when len is 0. */
+  CryptoStatus hkdfSha256(const uint8_t* ikm, size_t ikmLen,
+                          const uint8_t* salt, size_t saltLen,
+                          const uint8_t* info, size_t infoLen,
+                          uint8_t* okm, size_t okmLen);
 
   /**
    * HMAC-SHA-256 (RFC 2104). Uses the backend's hardware HMAC when available

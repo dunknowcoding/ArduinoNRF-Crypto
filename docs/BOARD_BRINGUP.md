@@ -1,34 +1,59 @@
 # Board bring-up: compile, flash, read the self-test, recover
 
-How to build NiusCrypto, flash it onto a ProMicro nRF52840 (nice!nano-class
-board with the UF2 bootloader + S140 SoftDevice), read the known-answer self-test
-over USB serial, and recover the board with a SEGGER J-Link if it ever stops
-enumerating.
+How to build NiusCrypto, flash it onto a ProMicro nRF52840, read the
+known-answer self-test over USB serial, and recover the board with a SEGGER
+J-Link if it ever stops enumerating.
 
-## Flash map (S140 / nice!nano)
+## Two common ProMicro layouts
+
+Pick the **Bootloader / DFU** menu option that matches your board before
+compile **and** upload (including J-Link `loadfile` — the hex address comes from
+the link script, not from J-Link itself).
+
+| Profile | App start | Typical board | Bootloader menu |
+|---------|-----------|---------------|-----------------|
+| **board1 (lab clone)** | `0x1000` | AliExpress ProMicro clone, MBR-only UF2/DFU | `autonosd` or `promicronosduf2` |
+| **nice!nano / S140** | `0x26000` | nice!nano v2, many Adafruit-fork clones with SoftDevice | `auto` or `promicro` |
+
+**board1** in this repo is the **0x1000** clone. Flashing a sketch linked at
+`0x26000` onto it (J-Link or UF2) leaves the bootloader with no valid app at
+`0x1000` and USB serial disappears — wiring is fine; the layout was wrong.
+
+### Flash map — board1 clone (MBR-only, `0x1000`)
+
+| Region | Address | Notes |
+|--------|---------|-------|
+| MBR | `0x00000` | Nordic master boot record |
+| Application | `0x1000` | where NiusCrypto sketches link on board1 |
+| UF2 bootloader | top of flash | vendor-specific; do not overwrite casually |
+
+### Flash map — nice!nano / S140 (`0x26000`)
 
 | Region | Address | Notes |
 |--------|---------|-------|
 | MBR | `0x00000` | Nordic master boot record |
 | SoftDevice S140 | `0x01000` | BLE stack; **must be present** or the app HardFaults early |
-| Application | `0x26000` | where NiusCrypto sketches link |
+| Application | `0x26000` | sketches with `bootloader=auto` / `promicro` |
 | UF2 bootloader | `0xF4000` | Adafruit/nice!nano bootloader |
-| DFU settings page | `0xFF000` | bootloader's app-validity metadata (CRC/size) |
+| DFU settings page | `0xFF000` | bootloader app-validity metadata |
 
-> The application start is `0x26000` (not `0x0`). The app boots **only** through
-> the bootloader, which validates the app against the DFU settings page and only
-> then jumps in. The SoftDevice owns the lowest RAM; the app's `_estack` is
-> `0x20040000`.
+> On S140 boards the app boots through the bootloader, which validates the app
+> against the DFU settings page. On MBR-only clones the app at `0x1000` runs
+> directly after reset through the MBR vector table.
 
 ## 1. Compile
 
+**board1 (clone, app @ `0x1000`):**
+
 ```sh
 arduino-cli compile \
-  --fqbn arduinonrf:nrf52:promicro_nrf52840 \
+  --fqbn arduinonrf:nrf52:promicro_nrf52840:bootloader=autonosd,usbcdc=enabled \
   --library /path/to/ArduinoNRF-Crypto \
   --build-path ./_build \
   /path/to/ArduinoNRF-Crypto/examples/CryptoSelfTest
 ```
+
+**nice!nano / S140 (`0x26000`):** omit the bootloader option or use `bootloader=auto`.
 
 All nine examples (`Aes`, `Backends`, `CryptoSelfTest`, `EcdhKeyExchange`,
 `EcdsaSignVerify`, `HmacSha256`, `RandomBytes`, `Sha256`) build clean at ~15%
@@ -95,12 +120,17 @@ When board1 has a SEGGER J-Link on SWD and the data port on `COM11`:
 
 ```powershell
 cd F:\path\to\ArduinoNRF-Crypto
-powershell -NoProfile -ExecutionPolicy Bypass -File vendor\tools\verify_board1.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File vendor\hwverify\verify_board1.ps1
 ```
 
-This compiles and flashes `CC310Smoke` (ArduinoNRF shim) and `CryptoSelfTest`,
-resets via J-Link, and fails unless each sketch prints `RESULT: OK`. Override
-the port with `$env:NIUS_BOARD1_COM='COM11'`.
+Default FQBN: `uploadmode=jlink,bootloader=autonosd` (app @ **0x1000**). This
+compiles and flashes `CC310Smoke`, `SdCryptoSmoke`, and `CryptoSelfTest`, resets
+via J-Link, and fails unless each sketch prints `RESULT: OK`. Override the port
+with `$env:NIUS_BOARD1_COM='COM11'`.
+
+If USB serial vanished after a J-Link session, you likely flashed a **0x26000**
+hex onto a **0x1000** board — re-run this script (or recompile with
+`bootloader=autonosd`) before blaming hardware.
 
 ## 4. Recover a non-enumerating board (J-Link)
 

@@ -1,0 +1,5 @@
+h
+mem32 0x000FE000 4
+mem32 0x000FF000 8
+g
+exit

@@ -40,6 +40,7 @@
 #include "../cc310/crys_rnd.h"
 #include "../cc310/crys_hash.h"
 #include "../cc310/crys_hmac.h"
+#include "../cc310/crys_hkdf.h"
 #include "../cc310/ssi_aes.h"
 #include "../cc310/crys_ecpki_types.h"
 #include "../cc310/crys_ecpki_domain.h"
@@ -48,6 +49,7 @@
 #include "../cc310/crys_ecpki_ecdsa.h"
 #include "../cc310/crys_ecpki_dh.h"
 #include "../cc310/ocrypto_aes_gcm.h"
+#include "../cc310/ocrypto_sha384.h"
 #endif
 
 namespace ncrypto {
@@ -194,11 +196,89 @@ CryptoStatus CC310Backend::sha256(const uint8_t* in, size_t len,
                     CRYS_HASH_BLOCK_SIZE_IN_BYTES, in, len, out);
 }
 
+CryptoStatus CC310Backend::sha384(const uint8_t* in, size_t len,
+                                  uint8_t out[kSha384Len]) {
+  if (!started_) return CryptoStatus::NotStarted;
+  if (out == nullptr || (in == nullptr && len != 0)) return CryptoStatus::BadParam;
+  // CRYS SHA-384 is unreliable on nRF52840 (Nordic's nrf_crypto CC310 backend
+  // omits it); use Oberon software, same library as AES-GCM.
+  uint8_t* bounce = scratchBytes();
+  size_t off = 0;
+  ocrypto_sha384_ctx ctx;
+  ocrypto_sha384_init(&ctx);
+  while (off < len) {
+    size_t chunk = len - off;
+    if (chunk > kScratchBytes) chunk = kScratchBytes;
+    memcpy(bounce, in + off, chunk);
+    ocrypto_sha384_update(&ctx, bounce, chunk);
+    off += chunk;
+  }
+  ocrypto_sha384_final(&ctx, out);
+  return CryptoStatus::Ok;
+}
+
 CryptoStatus CC310Backend::sha512(const uint8_t* in, size_t len,
                                   uint8_t out[kSha512Len]) {
   if (!started_) return CryptoStatus::NotStarted;
   return hashDigest(CRYS_HASH_SHA512_mode, kSha512Len,
                     CRYS_HASH_SHA512_BLOCK_SIZE_IN_BYTES, in, len, out);
+}
+
+CryptoStatus CC310Backend::hkdfSha256(const uint8_t* ikm, size_t ikmLen,
+                                      const uint8_t* salt, size_t saltLen,
+                                      const uint8_t* info, size_t infoLen,
+                                      uint8_t* okm, size_t okmLen) {
+  if (!started_) return CryptoStatus::NotStarted;
+  if (okm == nullptr || okmLen == 0) return CryptoStatus::BadParam;
+  if (ikm == nullptr && ikmLen != 0) return CryptoStatus::BadParam;
+  if (salt == nullptr && saltLen != 0) return CryptoStatus::BadParam;
+  if (info == nullptr && infoLen != 0) return CryptoStatus::BadParam;
+  if (okmLen > 255U * kSha256Len) return CryptoStatus::BadParam;
+  if (ikmLen > 0xFFFFFFFFu) return CryptoStatus::BadParam;
+
+  uint8_t ikmRam[CRYS_HKDF_MAX_HASH_KEY_SIZE_IN_BYTES];
+  uint8_t* ikmPtr = ikmRam;
+  if (ikmLen <= sizeof(ikmRam)) {
+    if (ikmLen > 0) memcpy(ikmRam, ikm, ikmLen);
+  } else {
+    if (ikmLen > kScratchBytes) return CryptoStatus::BadParam;
+    ikmPtr = scratchBytes();
+    memcpy(ikmPtr, ikm, ikmLen);
+  }
+
+  uint8_t saltRam[CRYS_HKDF_MAX_HASH_KEY_SIZE_IN_BYTES];
+  uint8_t* saltPtr = nullptr;
+  if (saltLen > 0) {
+    if (saltLen <= sizeof(saltRam)) {
+      memcpy(saltRam, salt, saltLen);
+      saltPtr = saltRam;
+    } else {
+      if (saltLen > kScratchBytes) return CryptoStatus::BadParam;
+      saltPtr = scratchBytes();
+      memcpy(saltPtr, salt, saltLen);
+    }
+  }
+
+  uint8_t infoRam[CRYS_HKDF_MAX_HASH_KEY_SIZE_IN_BYTES];
+  uint8_t* infoPtr = nullptr;
+  if (infoLen > 0) {
+    if (infoLen <= sizeof(infoRam)) {
+      memcpy(infoRam, info, infoLen);
+      infoPtr = infoRam;
+    } else {
+      if (infoLen > kScratchBytes) return CryptoStatus::BadParam;
+      infoPtr = scratchBytes();
+      memcpy(infoPtr, info, infoLen);
+    }
+  }
+
+  if (CRYS_HKDF_KeyDerivFunc(CRYS_HKDF_HASH_SHA256_mode, saltPtr, saltLen,
+                             ikmPtr, static_cast<uint32_t>(ikmLen), infoPtr,
+                             static_cast<uint32_t>(infoLen), okm,
+                             static_cast<uint32_t>(okmLen),
+                             SASI_FALSE) != CRYS_OK)
+    return CryptoStatus::InternalError;
+  return CryptoStatus::Ok;
 }
 
 CryptoStatus CC310Backend::hmacSha256(const uint8_t* key, size_t keyLen,
@@ -383,7 +463,12 @@ bool CC310Backend::begin() { return false; }
 void CC310Backend::end() {}
 CryptoStatus CC310Backend::randomBytes(uint8_t*, size_t) { return CryptoStatus::HardwareMissing; }
 CryptoStatus CC310Backend::sha256(const uint8_t*, size_t, uint8_t*) { return CryptoStatus::HardwareMissing; }
+CryptoStatus CC310Backend::sha384(const uint8_t*, size_t, uint8_t*) { return CryptoStatus::HardwareMissing; }
 CryptoStatus CC310Backend::sha512(const uint8_t*, size_t, uint8_t*) { return CryptoStatus::HardwareMissing; }
+CryptoStatus CC310Backend::hkdfSha256(const uint8_t*, size_t, const uint8_t*, size_t,
+                                      const uint8_t*, size_t, uint8_t*, size_t) {
+  return CryptoStatus::HardwareMissing;
+}
 CryptoStatus CC310Backend::hmacSha256(const uint8_t*, size_t, const uint8_t*, size_t, uint8_t*) { return CryptoStatus::HardwareMissing; }
 CryptoStatus CC310Backend::aes128CbcEncrypt(const uint8_t*, const uint8_t*, const uint8_t*, uint8_t*, size_t) { return CryptoStatus::HardwareMissing; }
 CryptoStatus CC310Backend::aes128CbcDecrypt(const uint8_t*, const uint8_t*, const uint8_t*, uint8_t*, size_t) { return CryptoStatus::HardwareMissing; }

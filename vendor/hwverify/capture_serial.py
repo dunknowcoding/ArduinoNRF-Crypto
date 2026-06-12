@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""J-Link reset + capture board1 serial until RESULT: (committed copy for CI/local)."""
+"""J-Link reset board1, capture serial until a RESULT: line (or timeout)."""
 import argparse
 import glob
 import os
@@ -10,8 +10,11 @@ import time
 try:
     import serial
 except ImportError:
-    sys.exit("pyserial required: pip install pyserial")
+    sys.exit("pyserial required: conda install pyserial")
 
+HERE = os.path.dirname(os.path.abspath(__file__))
+JLINK_SCRIPT = os.path.join(HERE, "justreset.jlink")
+DEFAULT_PORT = os.environ.get("NIUS_BOARD1_COM", "COM11")
 BAUD = 115200
 TIMEOUT_S = 25.0
 
@@ -29,17 +32,12 @@ def find_jlink():
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--port", default=DEFAULT_PORT, help="data COM port")
     parser.add_argument(
-        "--port",
-        default=os.environ.get("NIUS_BOARD1_COM", "COM11"),
-        help="USB data COM port",
+        "--expect",
+        default="RESULT:",
+        help="stop after a line starting with this prefix",
     )
-    parser.add_argument(
-        "--jlink-script",
-        default=os.path.join(os.path.dirname(__file__), "..", "hwverify", "justreset.jlink"),
-        help="J-Link commander script (r; g; q)",
-    )
-    parser.add_argument("--expect", default="RESULT:", help="line prefix to stop on")
     parser.add_argument("--timeout", type=float, default=TIMEOUT_S)
     args = parser.parse_args()
 
@@ -47,11 +45,8 @@ def main():
     if not jlink:
         sys.exit("JLink.exe not found")
 
-    script = os.path.normpath(args.jlink_script)
-    if not os.path.isfile(script):
-        sys.exit(f"J-Link script not found: {script}")
-
     print(f"serial={args.port} jlink={jlink}", flush=True)
+
     proc = subprocess.run(
         [
             jlink,
@@ -64,7 +59,7 @@ def main():
             "-autoconnect",
             "1",
             "-CommanderScript",
-            script,
+            JLINK_SCRIPT,
         ],
         capture_output=True,
         text=True,
@@ -102,7 +97,7 @@ def main():
 
     if not any(l.startswith(args.expect) for l in lines):
         sys.exit(f"timed out waiting for {args.expect!r}")
-    if not any("RESULT: OK" in l for l in lines):
+    if args.expect == "RESULT:" and not any("RESULT: OK" in l for l in lines):
         sys.exit("capture finished but RESULT: OK not seen")
     return 0
 

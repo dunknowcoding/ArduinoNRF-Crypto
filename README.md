@@ -29,8 +29,10 @@ void setup() {
 |-----------|-----------------|-------------------|
 | `random`  | **CC310 TRNG (hardware)**        | RNG peripheral (hardware) |
 | `sha256`  | **CC310 SHA-256 (hardware)**     | software (`SoftSha256`)   |
+| `sha384`  | Oberon software (via `nrf_oberon`)² | *Unsupported*             |
 | `sha512`  | **CC310 SHA-512 (hardware)**     | *Unsupported*             |
 | `hmacSha256` | **CC310 HMAC-SHA-256 (CRYS hardware)** | software (`SoftSha256`) |
+| `hkdfSha256` | **CC310 HKDF-SHA-256 (CRYS hardware)** | *Unsupported*         |
 | `aesCbcEncrypt` | **CC310 AES-CBC (hardware)** | ECB peripheral (hardware) |
 | `aesCbcDecrypt` | **CC310 AES-CBC (hardware)** | *Unsupported*¹            |
 | `aesCtr`  | **CC310 AES-CTR (hardware)**     | ECB peripheral (hardware) |
@@ -66,10 +68,12 @@ hardware-accelerated: yes`:
 
 ```
 PASS  SHA-256("abc")                        PASS  ECDSA P-256 sign/verify
-PASS  HMAC-SHA-256 (RFC 4231 #2)            PASS  ECDH P-256 shared-secret
-PASS  AES-128-CBC encrypt + decrypt (NIST)  PASS  random() (TRNG, fresh each run)
-PASS  AES-128-CTR (NIST F.5.1)              PASS  AES-128-GCM encrypt + decrypt+auth
-summary: 10 passed, 0 failed, 0 skipped     RESULT: OK
+PASS  SHA-384("abc")                        PASS  ECDH P-256 shared-secret
+PASS  SHA-512("abc")                        PASS  random() (TRNG, fresh each run)
+PASS  HKDF-SHA-256 (RFC 5869 #1)            PASS  AES-128-GCM encrypt + decrypt+auth
+PASS  HMAC-SHA-256 (RFC 4231 #2)            PASS  AES-128-CBC encrypt + decrypt (NIST)
+PASS  AES-128-CTR (NIST F.5.1)
+summary: 13 passed, 0 failed, 0 skipped     RESULT: OK
 ```
 
 ## Installing the library
@@ -83,6 +87,12 @@ arduino-cli lib install NiusCrypto
 ```
 
 Indexed via [arduino/library-registry](https://github.com/arduino/library-registry) (PR [#8517](https://github.com/arduino/library-registry/pull/8517)). New releases are picked up automatically when you push a new semver tag with an updated `library.properties` `version`.
+
+**Library Manager installs source only** — CC310 hardware acceleration still requires
+running `vendor/tools/setup_vendored.py` locally (Nordic license). Without vendored
+blobs, `library.properties` still lists `precompiled=true`; if linking fails with
+*cannot find -lnrf_cc310*, comment out the `precompiled` and `ldflags` lines and
+rebuild for the OnChip fallback.
 
 ### Manual install (GitHub)
 
@@ -147,10 +157,10 @@ locally):
 | `src/cc310/` | CRYS + Oberon headers copied by the import/fetch scripts |
 | `vendor/nRF5SDK/` | Your local nRF5 SDK tree (only needed as the CRYS import source) |
 | `vendor/MANIFEST*.txt`, `vendor/LICENSE-Nordic*.txt` | Generated manifests and license copies |
-| `vendor/hwverify/` | Temporary J-Link scripts, throwaway verification sketches, UF2/hex build output |
+| `vendor/hwverify/_*/` | J-Link helper scripts + `verify_board1.ps1` live here; `_verify_board1/` etc. are local build output |
 | `build/`, `_build/`, `*.elf`, `*.hex`, `*.uf2`, `*.map` | Arduino / arduino-cli build artifacts anywhere in the tree |
 
-After cloning, run the two vendoring steps in [Enabling the CC310 backend](#enabling-the-cc310-backend) once on your machine. If you use `vendor/hwverify/` for board bring-up, treat it as disposable — nothing in that folder should be pushed.
+After cloning, run the two vendoring steps in [Enabling the CC310 backend](#enabling-the-cc310-backend) once on your machine. Board1 hardware verification scripts live in `vendor/hwverify/` (see [docs/VALIDATION.md](docs/VALIDATION.md)); build artifacts under `vendor/hwverify/_*/` stay local.
 
 ## API
 
@@ -164,9 +174,14 @@ bool        Crypto.isHardwareAccelerated();
 
 CryptoStatus Crypto.random(uint8_t* buf, size_t len);
 CryptoStatus Crypto.sha256(const uint8_t* in, size_t len, uint8_t out[32]);
+CryptoStatus Crypto.sha384(const uint8_t* in, size_t len, uint8_t out[48]);
 CryptoStatus Crypto.sha512(const uint8_t* in, size_t len, uint8_t out[64]);
 CryptoStatus Crypto.hmacSha256(const uint8_t* key, size_t keyLen,
                                const uint8_t* msg, size_t msgLen, uint8_t out[32]);
+CryptoStatus Crypto.hkdfSha256(const uint8_t* ikm, size_t ikmLen,
+                               const uint8_t* salt, size_t saltLen,
+                               const uint8_t* info, size_t infoLen,
+                               uint8_t* okm, size_t okmLen);
 
 CryptoStatus Crypto.aesCbcEncrypt(key16, iv16, in, out, len /*%16*/);
 CryptoStatus Crypto.aesCbcDecrypt(key16, iv16, in, out, len /*%16*/);

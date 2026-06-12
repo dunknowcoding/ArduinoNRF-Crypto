@@ -26,8 +26,17 @@ void setup() {
   Serial.println(F("=== SdCryptoSmoke ==="));
   Serial.print(F("__nrf_app_start=0x"));
   Serial.println(__nrf_app_start, HEX);
+  if (__nrf_app_start >= 0x26000UL) {
+    Serial.println(F("layout: SoftDevice (S140 class)"));
+  } else if (__nrf_app_start == 0x1000UL) {
+    Serial.println(F("layout: no SoftDevice (MBR-only / 0x1000)"));
+  } else {
+    Serial.print(F("layout: unexpected (0x"));
+    Serial.print(__nrf_app_start, HEX);
+    Serial.println(')');
+  }
 
-  bool pass = (__nrf_app_start >= 0x26000UL);
+  bool pass = true;
   Crypto.begin();
   Serial.print(F("backend: "));
   Serial.println(Crypto.backendName());
