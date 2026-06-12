@@ -93,6 +93,18 @@ class CryptoEngine {
                              const uint8_t* in, uint8_t* out, size_t len,
                              const uint8_t tag[kGcmTagLen]);
 
+  /** ChaCha20-Poly1305 AEAD (RFC 8439). CC310/Oberon only; 12-byte nonce. */
+  CryptoStatus chachaPolyEncrypt(const uint8_t key[kChaPolyKeyLen],
+                                 const uint8_t nonce[kChaPolyNonceLen],
+                                 const uint8_t* aad, size_t aadLen,
+                                 const uint8_t* in, uint8_t* out, size_t len,
+                                 uint8_t tag[kChaPolyTagLen]);
+  CryptoStatus chachaPolyDecrypt(const uint8_t key[kChaPolyKeyLen],
+                                 const uint8_t nonce[kChaPolyNonceLen],
+                                 const uint8_t* aad, size_t aadLen,
+                                 const uint8_t* in, uint8_t* out, size_t len,
+                                 const uint8_t tag[kChaPolyTagLen]);
+
   // ---- ECDSA / ECDH P-256 (CC310 only) ----
   CryptoStatus ecdsaGenerateKey(uint8_t priv[kP256PrivLen],
                                 uint8_t pub[kP256PubLen]);

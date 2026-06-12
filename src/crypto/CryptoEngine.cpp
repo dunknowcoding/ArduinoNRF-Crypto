@@ -166,6 +166,33 @@ CryptoStatus CryptoEngine::aesGcmDecrypt(const uint8_t key[kAes128KeyLen],
   return backend_->aes128GcmDecrypt(key, iv, aad, aadLen, in, out, len, tag);
 }
 
+CryptoStatus CryptoEngine::chachaPolyEncrypt(const uint8_t key[kChaPolyKeyLen],
+                                             const uint8_t nonce[kChaPolyNonceLen],
+                                             const uint8_t* aad, size_t aadLen,
+                                             const uint8_t* in, uint8_t* out,
+                                             size_t len, uint8_t tag[kChaPolyTagLen]) {
+  NC_GUARD();
+  if (!key || !nonce || !tag) return CryptoStatus::BadParam;
+  if (len != 0 && (!in || !out)) return CryptoStatus::BadParam;
+  if (aadLen != 0 && aad == nullptr) return CryptoStatus::BadParam;
+  return backend_->chachaPolyEncrypt(key, nonce, aad, aadLen, in, out, len,
+                                     tag);
+}
+
+CryptoStatus CryptoEngine::chachaPolyDecrypt(const uint8_t key[kChaPolyKeyLen],
+                                             const uint8_t nonce[kChaPolyNonceLen],
+                                             const uint8_t* aad, size_t aadLen,
+                                             const uint8_t* in, uint8_t* out,
+                                             size_t len,
+                                             const uint8_t tag[kChaPolyTagLen]) {
+  NC_GUARD();
+  if (!key || !nonce || !tag) return CryptoStatus::BadParam;
+  if (len != 0 && (!in || !out)) return CryptoStatus::BadParam;
+  if (aadLen != 0 && aad == nullptr) return CryptoStatus::BadParam;
+  return backend_->chachaPolyDecrypt(key, nonce, aad, aadLen, in, out, len,
+                                     tag);
+}
+
 CryptoStatus CryptoEngine::ecdsaGenerateKey(uint8_t priv[kP256PrivLen],
                                             uint8_t pub[kP256PubLen]) {
   NC_GUARD();

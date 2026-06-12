@@ -1,6 +1,6 @@
 # NiusCrypto / CC310 roadmap
 
-Status as of **v0.3.2**. Hardware verification on **board1** (ProMicro clone,
+Status as of **v0.3.3**. Hardware verification on **board1** (ProMicro clone,
 app @ **`0x1000`**, J-Link + COM11) unless noted. **Seeed XIAO nRF52840**: CI
 compile-only until HW is available.
 
@@ -8,11 +8,11 @@ compile-only until HW is available.
 
 | Area | Delivered |
 |------|-----------|
-| **Core API** | `random`, SHA-256/384/512, HMAC-SHA-256, HKDF-SHA-256, AES-CBC/CTR/GCM, ECDSA/ECDH P-256 |
+| **Core API** | `random`, SHA-256/384/512, HMAC-SHA-256, HKDF-SHA-256, AES-CBC/CTR/GCM, ChaCha20-Poly1305, ECDSA/ECDH P-256 |
 | **Backends** | `CC310Backend` (CRYS + Oberon GCM), `OnChipBackend` fallback |
 | **ArduinoNRF shim** | `libraries/CC310/` → NiusCrypto (`depends=NiusCrypto`); SHA-512 forwarded |
 | **Vendoring** | `setup_vendored.py`, soft-float CRYS + Oberon |
-| **Examples** | 10 sketches incl. `CryptoSelfTest`, `HkdfSha256`, `SdCryptoSmoke` |
+| **Examples** | 11 sketches incl. `CryptoSelfTest`, `ChaChaPoly1305`, `HkdfSha256`, `SdCryptoSmoke` |
 | **CI** | GitHub Actions compile matrix (ProMicro + XIAO compile-only) + `arduino-lint` |
 | **Bring-up** | Local `vendor/hwverify/` (git-ignored), `docs/BOARD_BRINGUP.md`, `docs/VALIDATION.md` |
 | **Library Manager** | Indexed as **NiusCrypto** ([registry PR #8517](https://github.com/arduino/library-registry/pull/8517)) |
@@ -21,7 +21,6 @@ compile-only until HW is available.
 
 | Priority | Item | Notes |
 |----------|------|-------|
-| Medium | **ChaCha20-Poly1305** | CRYS has module; not wired in NiusCrypto yet |
 | Low | **RSA** | CRYS RSA; large surface, defer until needed |
 | Low | **Curve25519 / Ed25519** | CRYS ECP types exist; separate from P-256 path |
 | Ops | **Self-hosted CI + blobs** | Full CC310 link test on a runner with local SDK import |
@@ -43,3 +42,4 @@ compile-only until HW is available.
 | v0.3.0 | SHA-512, SdCryptoSmoke, multi-board CI, roadmap |
 | v0.3.1 | Library Manager indexing, SHA-512 KAT fix |
 | v0.3.2 | SHA-384, HKDF-SHA-256, shim SHA-512, arduino-lint, doc sync |
+| v0.3.3 | ChaCha20-Poly1305 (Oberon), RFC 8439 KAT, example sketch |

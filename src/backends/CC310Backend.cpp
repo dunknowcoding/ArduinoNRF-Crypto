@@ -12,6 +12,7 @@
     ECDSA    -> CC310 PKA: P-256 keygen / sign / verify (CRYS_ECDSA, CRYS_ECPKI).
     ECDH     -> CC310 PKA: P-256 shared secret (CRYS_ECDH_SVDP_DH).
     AES-GCM  -> Nordic Oberon (the CRYS runtime ships AES-CCM, not GCM).
+    ChaPoly  -> Nordic Oberon (RFC 8439 ChaCha20-Poly1305).
 
   Auto-detection: the .cpp compiles in real-hardware mode only when the vendored
   CRYS headers are present (checked with __has_include). Run
@@ -49,6 +50,7 @@
 #include "../cc310/crys_ecpki_ecdsa.h"
 #include "../cc310/crys_ecpki_dh.h"
 #include "../cc310/ocrypto_aes_gcm.h"
+#include "../cc310/ocrypto_chacha20_poly1305.h"
 #include "../cc310/ocrypto_sha384.h"
 #endif
 
@@ -371,6 +373,29 @@ CryptoStatus CC310Backend::aes128GcmDecrypt(const uint8_t key[kAes128KeyLen],
   return r == 0 ? CryptoStatus::Ok : CryptoStatus::AuthFailed;
 }
 
+CryptoStatus CC310Backend::chachaPolyEncrypt(const uint8_t key[kChaPolyKeyLen],
+                                             const uint8_t nonce[kChaPolyNonceLen],
+                                             const uint8_t* aad, size_t aadLen,
+                                             const uint8_t* in, uint8_t* out,
+                                             size_t len, uint8_t tag[kChaPolyTagLen]) {
+  if (!started_) return CryptoStatus::NotStarted;
+  ocrypto_chacha20_poly1305_encrypt(tag, out, in, len, aad, aadLen, nonce,
+                                    kChaPolyNonceLen, key);
+  return CryptoStatus::Ok;
+}
+
+CryptoStatus CC310Backend::chachaPolyDecrypt(const uint8_t key[kChaPolyKeyLen],
+                                             const uint8_t nonce[kChaPolyNonceLen],
+                                             const uint8_t* aad, size_t aadLen,
+                                             const uint8_t* in, uint8_t* out,
+                                             size_t len,
+                                             const uint8_t tag[kChaPolyTagLen]) {
+  if (!started_) return CryptoStatus::NotStarted;
+  int r = ocrypto_chacha20_poly1305_decrypt(tag, out, in, len, aad, aadLen,
+                                            nonce, kChaPolyNonceLen, key);
+  return r == 0 ? CryptoStatus::Ok : CryptoStatus::AuthFailed;
+}
+
 CryptoStatus CC310Backend::ecdsaP256GenerateKey(uint8_t priv[kP256PrivLen],
                                                 uint8_t pub[kP256PubLen]) {
   if (!started_) return CryptoStatus::NotStarted;
@@ -475,6 +500,8 @@ CryptoStatus CC310Backend::aes128CbcDecrypt(const uint8_t*, const uint8_t*, cons
 CryptoStatus CC310Backend::aes128Ctr(const uint8_t*, const uint8_t*, const uint8_t*, uint8_t*, size_t) { return CryptoStatus::HardwareMissing; }
 CryptoStatus CC310Backend::aes128GcmEncrypt(const uint8_t*, const uint8_t*, const uint8_t*, size_t, const uint8_t*, uint8_t*, size_t, uint8_t*) { return CryptoStatus::HardwareMissing; }
 CryptoStatus CC310Backend::aes128GcmDecrypt(const uint8_t*, const uint8_t*, const uint8_t*, size_t, const uint8_t*, uint8_t*, size_t, const uint8_t*) { return CryptoStatus::HardwareMissing; }
+CryptoStatus CC310Backend::chachaPolyEncrypt(const uint8_t*, const uint8_t*, const uint8_t*, size_t, const uint8_t*, uint8_t*, size_t, uint8_t*) { return CryptoStatus::HardwareMissing; }
+CryptoStatus CC310Backend::chachaPolyDecrypt(const uint8_t*, const uint8_t*, const uint8_t*, size_t, const uint8_t*, uint8_t*, size_t, const uint8_t*) { return CryptoStatus::HardwareMissing; }
 CryptoStatus CC310Backend::ecdsaP256GenerateKey(uint8_t*, uint8_t*) { return CryptoStatus::HardwareMissing; }
 CryptoStatus CC310Backend::ecdsaP256Sign(const uint8_t*, const uint8_t*, uint8_t*) { return CryptoStatus::HardwareMissing; }
 CryptoStatus CC310Backend::ecdsaP256Verify(const uint8_t*, const uint8_t*, const uint8_t*) { return CryptoStatus::HardwareMissing; }

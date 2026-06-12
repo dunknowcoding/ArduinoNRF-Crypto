@@ -37,6 +37,8 @@ aesCbcDecrypt	KEYWORD2
 aesCtr	KEYWORD2
 aesGcmEncrypt	KEYWORD2
 aesGcmDecrypt	KEYWORD2
+chachaPolyEncrypt	KEYWORD2
+chachaPolyDecrypt	KEYWORD2
 ecdsaGenerateKey	KEYWORD2
 ecdsaSign	KEYWORD2
 ecdsaVerify	KEYWORD2

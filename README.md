@@ -2,7 +2,7 @@
 
 Hardware-accelerated cryptography for the [ArduinoNRF](../ArduinoNRF) board
 package (nRF52840 / ProMicro). One friendly API — `random`, `SHA-256`, `HMAC`,
-`AES-128` (CBC / CTR / GCM) and `ECDSA` / `ECDH` on NIST P-256 — backed by the
+`AES-128` (CBC / CTR / GCM), `ChaCha20-Poly1305`, and `ECDSA` / `ECDH` on NIST P-256 — backed by the
 chip's **Arm CryptoCell 310** hardware accelerator, with an automatic on-chip
 fallback when the Nordic binary is not present.
 
@@ -37,14 +37,15 @@ void setup() {
 | `aesCbcDecrypt` | **CC310 AES-CBC (hardware)** | *Unsupported*¹            |
 | `aesCtr`  | **CC310 AES-CTR (hardware)**     | ECB peripheral (hardware) |
 | `aesGcm*` | `nrf_oberon` (software²)         | *Unsupported*             |
+| `chachaPoly*` | `nrf_oberon` (software²)     | *Unsupported*             |
 | `ecdsa*` / `ecdh*` | **CC310 ECC P-256 (hardware)** | *Unsupported*        |
 
 ¹ The nRF52840 ECB peripheral only *encrypts*; CBC decryption needs the AES
 inverse, so use CTR on the fallback or enable the CC310 backend.
-² The classic CryptoCell runtime (CRYS) does not expose AES-GCM, so GCM is the
-one primitive that runs in Nordic's compact `nrf_oberon` software library
-instead of on the accelerator. Everything else on the `CC310` backend runs on
-the CryptoCell hardware.
+² The classic CryptoCell runtime (CRYS) does not expose AES-GCM or
+ChaCha20-Poly1305, so those AEAD primitives run in Nordic's compact
+`nrf_oberon` software library instead of on the accelerator. Everything else
+on the `CC310` backend runs on the CryptoCell hardware.
 
 `Crypto.begin()` selects `CC310` if the Nordic binaries were vendored and the
 CryptoCell powers up, otherwise `OnChip`. You can force a choice with
@@ -57,8 +58,8 @@ silently, so a sketch can branch on capability.
 > and ECDH P-256, and the TRNG all execute on the Arm CryptoCell 310 hardware.
 > CRYS ships only inside Nordic's nRF5 SDK (not in public nrfxlib), so it is
 > imported from a local SDK install rather than auto-downloaded — see
-> [docs/VENDORING.md](docs/VENDORING.md). AES-GCM, which CRYS lacks, is provided
-> by the compact `nrf_oberon` library.
+> [docs/VENDORING.md](docs/VENDORING.md). AES-GCM and ChaCha20-Poly1305, which
+> CRYS lacks, are provided by the compact `nrf_oberon` library.
 
 ## Hardware verification
 
@@ -71,9 +72,9 @@ PASS  SHA-256("abc")                        PASS  ECDSA P-256 sign/verify
 PASS  SHA-384("abc")                        PASS  ECDH P-256 shared-secret
 PASS  SHA-512("abc")                        PASS  random() (TRNG, fresh each run)
 PASS  HKDF-SHA-256 (RFC 5869 #1)            PASS  AES-128-GCM encrypt + decrypt+auth
-PASS  HMAC-SHA-256 (RFC 4231 #2)            PASS  AES-128-CBC encrypt + decrypt (NIST)
-PASS  AES-128-CTR (NIST F.5.1)
-summary: 13 passed, 0 failed, 0 skipped     RESULT: OK
+PASS  HMAC-SHA-256 (RFC 4231 #2)            PASS  ChaCha20-Poly1305 (RFC 8439 A.5)
+PASS  AES-128-CBC encrypt + decrypt (NIST)  PASS  AES-128-CTR (NIST F.5.1)
+summary: 15 passed, 0 failed, 0 skipped     RESULT: OK
 ```
 
 ## Installing the library
@@ -209,6 +210,8 @@ Public keys are 64 bytes (`X‖Y`), signatures 64 bytes (`R‖S`), private scala
 | `Sha256` | Hashing strings (interactive) |
 | `HmacSha256` | RFC 4231 HMAC-SHA-256 known-answer demo |
 | `Aes` | CBC / CTR / GCM encrypt-decrypt round-trips |
+| `ChaChaPoly1305` | RFC 8439 AEAD encrypt/decrypt known-answer demo |
+| `HkdfSha256` | HKDF-SHA-256 key derivation (RFC 5869) |
 | `EcdsaSignVerify` | P-256 key gen, sign, verify, tamper-detect |
 | `EcdhKeyExchange` | P-256 shared-secret agreement between two parties |
 

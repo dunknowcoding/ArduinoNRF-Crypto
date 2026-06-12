@@ -130,6 +130,29 @@ class CryptoBackend {
     return CryptoStatus::Unsupported;
   }
 
+  // ---- ChaCha20-Poly1305 (authenticated) ----
+
+  virtual CryptoStatus chachaPolyEncrypt(const uint8_t key[kChaPolyKeyLen],
+                                         const uint8_t nonce[kChaPolyNonceLen],
+                                         const uint8_t* aad, size_t aadLen,
+                                         const uint8_t* in, uint8_t* out,
+                                         size_t len,
+                                         uint8_t tag[kChaPolyTagLen]) {
+    (void)key; (void)nonce; (void)aad; (void)aadLen;
+    (void)in; (void)out; (void)len; (void)tag;
+    return CryptoStatus::Unsupported;
+  }
+  virtual CryptoStatus chachaPolyDecrypt(const uint8_t key[kChaPolyKeyLen],
+                                         const uint8_t nonce[kChaPolyNonceLen],
+                                         const uint8_t* aad, size_t aadLen,
+                                         const uint8_t* in, uint8_t* out,
+                                         size_t len,
+                                         const uint8_t tag[kChaPolyTagLen]) {
+    (void)key; (void)nonce; (void)aad; (void)aadLen;
+    (void)in; (void)out; (void)len; (void)tag;
+    return CryptoStatus::Unsupported;
+  }
+
   // ---- ECDSA / ECDH on NIST P-256 ----
   // Public keys are 64 bytes (X||Y), signatures 64 bytes (R||S), private
   // scalars 32 bytes, all big-endian. ecdsaP256Sign takes a 32-byte message

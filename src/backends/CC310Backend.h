@@ -11,8 +11,8 @@
   simply falls back to the on-chip backend and the whole library still builds.
 
   When active it provides the full CC310 feature set used by this library:
-  hardware TRNG, SHA-256/384/512, HKDF-SHA-256, AES-128 (CBC / CTR / GCM) and
-  ECDSA / ECDH on NIST P-256.
+  hardware TRNG, SHA-256/384/512, HKDF-SHA-256, AES-128 (CBC / CTR / GCM),
+  ChaCha20-Poly1305, and ECDSA / ECDH on NIST P-256.
 */
 #ifndef NIUSCRYPTO_CC310BACKEND_H
 #define NIUSCRYPTO_CC310BACKEND_H
@@ -65,6 +65,17 @@ class CC310Backend : public CryptoBackend {
                                 const uint8_t* aad, size_t aadLen,
                                 const uint8_t* in, uint8_t* out, size_t len,
                                 const uint8_t tag[kGcmTagLen]) override;
+
+  CryptoStatus chachaPolyEncrypt(const uint8_t key[kChaPolyKeyLen],
+                                 const uint8_t nonce[kChaPolyNonceLen],
+                                 const uint8_t* aad, size_t aadLen,
+                                 const uint8_t* in, uint8_t* out, size_t len,
+                                 uint8_t tag[kChaPolyTagLen]) override;
+  CryptoStatus chachaPolyDecrypt(const uint8_t key[kChaPolyKeyLen],
+                                 const uint8_t nonce[kChaPolyNonceLen],
+                                 const uint8_t* aad, size_t aadLen,
+                                 const uint8_t* in, uint8_t* out, size_t len,
+                                 const uint8_t tag[kChaPolyTagLen]) override;
 
   CryptoStatus ecdsaP256GenerateKey(uint8_t priv[kP256PrivLen],
                                     uint8_t pub[kP256PubLen]) override;

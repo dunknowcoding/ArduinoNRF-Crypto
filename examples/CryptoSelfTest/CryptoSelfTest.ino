@@ -7,8 +7,8 @@
   per item and a final summary.
 
   On a board with CC310 vendored every line should read PASS. On the bare
-  on-chip fallback, GCM / ECDSA / ECDH read SKIP (Unsupported) - that is
-  expected, not a failure.
+  on-chip fallback, GCM / ChaCha20-Poly1305 / ECDSA / ECDH read SKIP
+  (Unsupported) - that is expected, not a failure.
 
   Open the Serial Monitor at 115200 baud.
 */
@@ -101,6 +101,27 @@ static const uint8_t kGcmCt[64] = {
 static const uint8_t kGcmTag[16] = {0x4d, 0x5c, 0x2a, 0xf3, 0x27, 0xcd, 0x64,
                                     0xa6, 0x2c, 0xf3, 0x5a, 0xbd, 0x2b, 0xa6,
                                     0xfa, 0xb4};
+
+// ChaCha20-Poly1305, RFC 8439 appendix A.5
+static const uint8_t kChaKey[32] = {
+    0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88, 0x89, 0x8a, 0x8b,
+    0x8c, 0x8d, 0x8e, 0x8f, 0x90, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97,
+    0x98, 0x99, 0x9a, 0x9b, 0x9c, 0x9d, 0x9e, 0x9f};
+static const uint8_t kChaNonce[12] = {0x07, 0x00, 0x00, 0x00, 0x41, 0xb0,
+                                      0x51, 0xec, 0x5e, 0x98, 0x56, 0x63};
+static const uint8_t kChaAad[8] = {0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56,
+                                   0x57};
+static const uint8_t kChaPt[32] = {
+    0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b,
+    0x0c, 0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
+    0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f};
+static const uint8_t kChaCt[32] = {
+    0xd3, 0x1a, 0x8d, 0xf3, 0x46, 0xaa, 0x77, 0x8d, 0xea, 0xff, 0x95, 0x1b,
+    0x10, 0xe4, 0xf6, 0xda, 0x2e, 0x0b, 0x43, 0x62, 0xa4, 0x0a, 0xf6, 0x14,
+    0x49, 0x7f, 0xe0, 0x58, 0x6e, 0x38, 0x55, 0x5b};
+static const uint8_t kChaTag[16] = {0x42, 0x59, 0x95, 0x23, 0x99, 0xc2, 0xe3,
+                                    0x55, 0x8e, 0xb1, 0x09, 0x2c, 0xed, 0xbd,
+                                    0x28, 0x3f};
 
 // HMAC-SHA256, RFC 4231 test case 2: key "Jefe", msg "what do ya want for nothing?"
 static const uint8_t kHmacKey[4] = {'J', 'e', 'f', 'e'};
@@ -227,6 +248,25 @@ void runTests() {
     } else {
       skip("AES-128-GCM encrypt (McGrew #3)", se);
       skip("AES-128-GCM decrypt + auth", se);
+    }
+  }
+
+  // ChaCha20-Poly1305 encrypt + decrypt
+  {
+    CryptoStatus se = Crypto.chachaPolyEncrypt(kChaKey, kChaNonce, kChaAad,
+                                               sizeof(kChaAad), kChaPt, buf, 32,
+                                               tag);
+    if (se == CryptoStatus::Ok) {
+      bool ok = equal(buf, kChaCt, 32) && equal(tag, kChaTag, 16);
+      report("ChaCha20-Poly1305 encrypt (RFC 8439 A.5)", ok);
+      CryptoStatus sd = Crypto.chachaPolyDecrypt(kChaKey, kChaNonce, kChaAad,
+                                                 sizeof(kChaAad), kChaCt, buf2,
+                                                 32, kChaTag);
+      report("ChaCha20-Poly1305 decrypt + auth",
+             sd == CryptoStatus::Ok && equal(buf2, kChaPt, 32));
+    } else {
+      skip("ChaCha20-Poly1305 encrypt (RFC 8439 A.5)", se);
+      skip("ChaCha20-Poly1305 decrypt + auth", se);
     }
   }
 
