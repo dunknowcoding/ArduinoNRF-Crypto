@@ -1,5 +1,5 @@
 name=NiusCrypto
-version=0.6.0
+version=0.7.0
 author=NiusRobotLab
 maintainer=dunknowcoding
 sentence=OnChip-only build of NiusCrypto (no Nordic precompiled archives).

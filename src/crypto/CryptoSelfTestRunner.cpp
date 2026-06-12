@@ -315,31 +315,28 @@ SelfTestReport runCryptoSelfTests(CryptoEngine& crypto) {
     }
   }
 
-  // RSA-2048 PKCS#1 v1.5 + SHA-256 sign/verify round-trip
+  // RSA-2048 PKCS#1 v1.5 + SHA-256 sign/verify round-trip (explicit RsaKeyPair)
   {
     static const uint8_t kRsaMsg[] = {'r', 's', 'a', '-', 't', 'e', 's', 't'};
-    uint8_t sig[256], mod[256], exp[4];
-    uint16_t modLen = sizeof(mod), expLen = sizeof(exp);
-    CryptoStatus kg = crypto.rsa2048GenerateKey();
+    uint8_t sig[256];
+    RsaKeyPair key;
+    CryptoStatus kg = crypto.rsaGenerate(&key);
     if (kg == CryptoStatus::Ok) {
-      CryptoStatus ss = crypto.rsaPkcs1Sha256Sign(kRsaMsg, sizeof(kRsaMsg), sig);
+      CryptoStatus ss = crypto.rsaSign(&key, kRsaMsg, sizeof(kRsaMsg), sig);
       if (ss == CryptoStatus::Ok) {
-        bool good = (crypto.rsaPkcs1Sha256Verify(kRsaMsg, sizeof(kRsaMsg), sig) ==
-                     CryptoStatus::Ok);
+        bool good =
+            (crypto.rsaVerify(&key, kRsaMsg, sizeof(kRsaMsg), sig) == CryptoStatus::Ok);
         sig[0] ^= 0x01;
-        bool rejects = (crypto.rsaPkcs1Sha256Verify(kRsaMsg, sizeof(kRsaMsg), sig) !=
-                        CryptoStatus::Ok);
+        bool rejects =
+            (crypto.rsaVerify(&key, kRsaMsg, sizeof(kRsaMsg), sig) != CryptoStatus::Ok);
         sig[0] ^= 0x01;
         reportPassFail(report, good && rejects);
 
-        CryptoStatus ex = crypto.rsa2048ExportPubKey(mod, &modLen, exp, &expLen);
-        if (ex == CryptoStatus::Ok) {
-          bool viaPub = (crypto.rsaPkcs1Sha256VerifyPub(mod, modLen, exp, expLen,
-                                                      kRsaMsg, sizeof(kRsaMsg),
-                                                      sig) == CryptoStatus::Ok);
+        RsaPublicKey pub;
+        if (crypto.rsaExportPublic(&key, &pub) == CryptoStatus::Ok) {
+          bool viaPub = (crypto.rsaVerifyWithPubKey(&pub, kRsaMsg, sizeof(kRsaMsg),
+                                                    sig) == CryptoStatus::Ok);
           reportPassFail(report, viaPub);
-        } else if (ex == CryptoStatus::Unsupported) {
-          reportSkip(report);
         } else {
           reportPassFail(report, false);
         }
@@ -347,21 +344,15 @@ SelfTestReport runCryptoSelfTests(CryptoEngine& crypto) {
         reportSkip(report);
         reportSkip(report);
       }
-    } else {
-      reportSkip(report);
-      reportSkip(report);
-    }
 
-    RsaKeyPair explicitKey;
-    CryptoStatus eg = crypto.rsaGenerate(&explicitKey);
-    if (eg == CryptoStatus::Ok) {
-      bool released = (crypto.rsaRelease(&explicitKey) == CryptoStatus::Ok &&
-                       !explicitKey.valid());
+      bool released = (crypto.rsaRelease(&key) == CryptoStatus::Ok && !key.valid());
       RsaKeyPair again;
       bool regen = (crypto.rsaGenerate(&again) == CryptoStatus::Ok);
       if (regen) crypto.rsaRelease(&again);
       reportPassFail(report, released && regen);
-    } else if (eg == CryptoStatus::Unsupported) {
+    } else if (kg == CryptoStatus::Unsupported) {
+      reportSkip(report);
+      reportSkip(report);
       reportSkip(report);
     } else {
       reportPassFail(report, false);

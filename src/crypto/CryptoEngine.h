@@ -219,24 +219,6 @@ class CryptoEngine {
                                       const uint8_t* msg, size_t msgLen,
                                       const uint8_t sig[kRsa2048SigLen]);
 
-  /** @deprecated Prefer rsaGenerateKeyPair + rsaSignWithKeyPair instead. */
-  [[deprecated("Use rsaGenerateKeyPair() with an explicit RsaKeyPair handle")]]
-  CryptoStatus rsa2048GenerateKey();
-  [[deprecated("Use rsaSign() with an explicit RsaKeyPair handle")]]
-  CryptoStatus rsaPkcs1Sha256Sign(const uint8_t* msg, size_t msgLen,
-                                  uint8_t sig[kRsa2048SigLen]);
-  [[deprecated("Use rsaVerify() with an explicit RsaKeyPair handle")]]
-  CryptoStatus rsaPkcs1Sha256Verify(const uint8_t* msg, size_t msgLen,
-                                    const uint8_t sig[kRsa2048SigLen]);
-  [[deprecated("Use rsaExportPublic() with an explicit RsaKeyPair handle")]]
-  CryptoStatus rsa2048ExportPubKey(uint8_t mod[kRsa2048ModLen], uint16_t* modLen,
-                                   uint8_t* pubExp, uint16_t* pubExpLen);
-  [[deprecated("Use rsaVerifyWithPubKey() instead")]]
-  CryptoStatus rsaPkcs1Sha256VerifyPub(const uint8_t* mod, uint16_t modLen,
-                                        const uint8_t* pubExp, uint16_t pubExpLen,
-                                        const uint8_t* msg, size_t msgLen,
-                                        const uint8_t sig[kRsa2048SigLen]);
-
   /** Friendly aliases (same behavior as the names above). */
   inline CryptoStatus rsaGenerate(RsaKeyPair* key) { return rsaGenerateKeyPair(key); }
   inline CryptoStatus rsaSign(const RsaKeyPair* key, const uint8_t* msg,
@@ -322,7 +304,6 @@ class CryptoEngine {
 
  private:
   CryptoBackend* backend_ = nullptr;
-  RsaKeyPair legacyRsa_{};
 };
 
 }  // namespace ncrypto

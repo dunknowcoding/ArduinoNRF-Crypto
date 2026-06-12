@@ -200,8 +200,7 @@ class CryptoBackend {
   }
 
   // ---- RSA-2048 PKCS#1 v1.5 + SHA-256 (CC310) ----
-  // Legacy rsa2048GenerateKey() uses an internal default key (slot 0).
-  // Prefer rsaGenerateKeyPair() for an explicit RsaKeyPair handle.
+  // Use rsaGenerateKeyPair() for an explicit RsaKeyPair handle.
 
   virtual CryptoStatus rsaGenerateKeyPair(RsaKeyPair* key) {
     (void)key; return CryptoStatus::Unsupported;
@@ -256,33 +255,6 @@ class CryptoBackend {
       const RsaPublicKey* pub, const uint8_t* msg, size_t msgLen,
       const uint8_t sig[kRsa2048SigLen]) {
     (void)pub; (void)msg; (void)msgLen; (void)sig;
-    return CryptoStatus::Unsupported;
-  }
-
-  virtual CryptoStatus rsa2048GenerateKey() {
-    return CryptoStatus::Unsupported;
-  }
-  virtual CryptoStatus rsaPkcs1Sha256Sign(const uint8_t* msg, size_t msgLen,
-                                          uint8_t sig[kRsa2048SigLen]) {
-    (void)msg; (void)msgLen; (void)sig; return CryptoStatus::Unsupported;
-  }
-  virtual CryptoStatus rsaPkcs1Sha256Verify(const uint8_t* msg, size_t msgLen,
-                                            const uint8_t sig[kRsa2048SigLen]) {
-    (void)msg; (void)msgLen; (void)sig; return CryptoStatus::Unsupported;
-  }
-  virtual CryptoStatus rsa2048ExportPubKey(uint8_t mod[kRsa2048ModLen],
-                                         uint16_t* modLen,
-                                         uint8_t* pubExp, uint16_t* pubExpLen) {
-    (void)mod; (void)modLen; (void)pubExp; (void)pubExpLen;
-    return CryptoStatus::Unsupported;
-  }
-  virtual CryptoStatus rsaPkcs1Sha256VerifyPub(const uint8_t* mod, uint16_t modLen,
-                                               const uint8_t* pubExp,
-                                               uint16_t pubExpLen,
-                                               const uint8_t* msg, size_t msgLen,
-                                               const uint8_t sig[kRsa2048SigLen]) {
-    (void)mod; (void)modLen; (void)pubExp; (void)pubExpLen;
-    (void)msg; (void)msgLen; (void)sig;
     return CryptoStatus::Unsupported;
   }
 

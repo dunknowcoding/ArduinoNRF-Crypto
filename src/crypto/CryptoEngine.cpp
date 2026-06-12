@@ -51,7 +51,6 @@ void CryptoEngine::end() {
     backend_->end();
     backend_ = nullptr;
   }
-  legacyRsa_.clear();
 }
 
 const char* CryptoEngine::backendName() const {
@@ -486,9 +485,7 @@ CryptoStatus CryptoEngine::rsaExportPublicKey(const RsaKeyPair* key,
 CryptoStatus CryptoEngine::rsaReleaseKeyPair(RsaKeyPair* key) {
   NC_GUARD();
   if (!key || !key->valid()) return CryptoStatus::BadParam;
-  CryptoStatus s = backend_->rsaReleaseKeyPair(key);
-  if (key == &legacyRsa_) legacyRsa_.clear();
-  return s;
+  return backend_->rsaReleaseKeyPair(key);
 }
 
 CryptoStatus CryptoEngine::rsaImportKeyPair(RsaKeyPair* key,
@@ -517,70 +514,6 @@ CryptoStatus CryptoEngine::rsaPssVerifyWithPubKey(
     const uint8_t sig[kRsa2048SigLen]) {
   NC_GUARD();
   return backend_->rsaPssVerifyWithPublicKey(pub, msg, msgLen, sig);
-}
-
-CryptoStatus CryptoEngine::rsa2048GenerateKey() {
-  NC_GUARD();
-  legacyRsa_.clear();
-  CryptoStatus s = backend_->rsa2048GenerateKey();
-  if (s != CryptoStatus::Ok) return s;
-  legacyRsa_.slot = 0;
-  return backend_->rsaExportPublicKey(&legacyRsa_, &legacyRsa_.pub);
-}
-
-CryptoStatus CryptoEngine::rsaPkcs1Sha256Sign(const uint8_t* msg, size_t msgLen,
-                                               uint8_t sig[kRsa2048SigLen]) {
-  NC_GUARD();
-  if (!sig) return CryptoStatus::BadParam;
-  if (msgLen != 0 && msg == nullptr) return CryptoStatus::BadParam;
-  if (legacyRsa_.valid())
-    return backend_->rsaSignWithKeyPair(&legacyRsa_, msg, msgLen, sig);
-  return backend_->rsaPkcs1Sha256Sign(msg, msgLen, sig);
-}
-
-CryptoStatus CryptoEngine::rsaPkcs1Sha256Verify(const uint8_t* msg, size_t msgLen,
-                                                const uint8_t sig[kRsa2048SigLen]) {
-  NC_GUARD();
-  if (!sig) return CryptoStatus::BadParam;
-  if (msgLen != 0 && msg == nullptr) return CryptoStatus::BadParam;
-  if (legacyRsa_.valid())
-    return backend_->rsaVerifyWithKeyPair(&legacyRsa_, msg, msgLen, sig);
-  return backend_->rsaPkcs1Sha256Verify(msg, msgLen, sig);
-}
-
-CryptoStatus CryptoEngine::rsa2048ExportPubKey(uint8_t mod[kRsa2048ModLen],
-                                               uint16_t* modLen,
-                                               uint8_t* pubExp,
-                                               uint16_t* pubExpLen) {
-  NC_GUARD();
-  if (!mod || !modLen || !pubExp || !pubExpLen) return CryptoStatus::BadParam;
-  if (legacyRsa_.valid()) {
-    if (*pubExpLen < legacyRsa_.pub.expLen) return CryptoStatus::BadParam;
-    memcpy(mod, legacyRsa_.pub.modulus, legacyRsa_.pub.modLen);
-    memcpy(pubExp, legacyRsa_.pub.exponent, legacyRsa_.pub.expLen);
-    *modLen = legacyRsa_.pub.modLen;
-    *pubExpLen = legacyRsa_.pub.expLen;
-    return CryptoStatus::Ok;
-  }
-  return backend_->rsa2048ExportPubKey(mod, modLen, pubExp, pubExpLen);
-}
-
-CryptoStatus CryptoEngine::rsaPkcs1Sha256VerifyPub(
-    const uint8_t* mod, uint16_t modLen, const uint8_t* pubExp,
-    uint16_t pubExpLen, const uint8_t* msg, size_t msgLen,
-    const uint8_t sig[kRsa2048SigLen]) {
-  NC_GUARD();
-  if (!mod || !pubExp || !sig || modLen == 0 || pubExpLen == 0)
-    return CryptoStatus::BadParam;
-  if (msgLen != 0 && msg == nullptr) return CryptoStatus::BadParam;
-  RsaPublicKey pub;
-  if (modLen > kRsa2048ModLen || pubExpLen > kRsaMaxExpLen)
-    return CryptoStatus::BadParam;
-  memcpy(pub.modulus, mod, modLen);
-  memcpy(pub.exponent, pubExp, pubExpLen);
-  pub.modLen = modLen;
-  pub.expLen = pubExpLen;
-  return backend_->rsaVerifyWithPublicKey(&pub, msg, msgLen, sig);
 }
 
 CryptoStatus CryptoEngine::ecdsaSignMessage(const uint8_t priv[kP256PrivLen],

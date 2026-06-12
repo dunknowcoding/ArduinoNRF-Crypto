@@ -94,13 +94,11 @@ Search **NiusCrypto** in **Sketch → Include Library → Manage Libraries…** 
 arduino-cli lib install NiusCrypto
 ```
 
-Indexed via [arduino/library-registry](https://github.com/arduino/library-registry) (PR [#8517](https://github.com/arduino/library-registry/pull/8517)). New releases are picked up automatically when you push a new semver tag with an updated `library.properties` `version`.
+Indexed via [arduino/library-registry](https://github.com/arduino/library-registry) — see [docs/LIBRARY_MANAGER.md](docs/LIBRARY_MANAGER.md). New releases are picked up automatically when you push a semver tag with an updated `library.properties` `version`.
 
-**Library Manager installs source only** — CC310 hardware acceleration still requires
+**Library Manager installs source only** — CC310 hardware acceleration requires
 running `vendor/tools/setup_vendored.py` locally (Nordic license). Without vendored
-blobs, `library.properties` still lists `precompiled=true`; if linking fails with
-*cannot find -lnrf_cc310*, comment out the `precompiled` and `ldflags` lines and
-rebuild for the OnChip fallback.
+blobs, run `powershell -File tools/use_onchip_build.ps1` (see [ONCHIP_BUILD.md](docs/ONCHIP_BUILD.md)).
 
 ### Manual install (GitHub)
 
@@ -220,6 +218,7 @@ details.
 - **[docs/API_REFERENCE.md](docs/API_REFERENCE.md)** — complete API manual (basic → advanced, limits, examples)
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — layers, backend selection, ABI notes
 - [docs/ONCHIP_BUILD.md](docs/ONCHIP_BUILD.md) — Library Manager / no-blob builds
+- [docs/LIBRARY_MANAGER.md](docs/LIBRARY_MANAGER.md) — Arduino Library Manager indexing
 - [docs/ROADMAP.md](docs/ROADMAP.md) — shipped vs planned CRYS capabilities
 - [docs/SOFTDEVICE_COEXISTENCE.md](docs/SOFTDEVICE_COEXISTENCE.md) — CC310 + S140 notes
 - [docs/MULTI_BOARD.md](docs/MULTI_BOARD.md) — multi-board compile notes and HW status

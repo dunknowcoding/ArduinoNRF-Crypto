@@ -1,6 +1,6 @@
 # NiusCrypto API Reference
 
-Complete reference for the public API shipped in **v0.6.0**. All symbols live
+Complete reference for the public API shipped in **v0.7.0**. All symbols live
 in the global `Crypto` object (`ncrypto::CryptoEngine`) unless noted.
 
 **Primary header:** `#include <NiusCrypto.h>`
@@ -41,7 +41,7 @@ See also: [ARCHITECTURE.md](ARCHITECTURE.md) (layers and backends),
 14. [Ed25519](#14-ed25519)
 15. [RSA-2048 PKCS#1 v1.5 + SHA-256](#15-rsa-2048-pkcs1-v15--sha-256)
 16. [Packet structs and reset()](#16-packet-structs-and-reset)
-17. [Deprecated and alias APIs](#17-deprecated-and-alias-apis)
+17. [Friendly aliases and v0.7 removals](#17-friendly-aliases)
 18. [Advanced: direct backend access](#18-advanced-direct-backend-access)
 19. [Error handling patterns](#19-error-handling-patterns)
 
@@ -865,25 +865,6 @@ Crypto.rsaVerifyWithPubKey(&exported, message, messageLen, sig);
 Crypto.rsaRelease(&key);   // free backend slot
 ```
 
-### Legacy implicit key (deprecated)
-
-Uses internal slot 0 inside `CryptoEngine`:
-
-```cpp
-CryptoStatus rsa2048GenerateKey();
-CryptoStatus rsaPkcs1Sha256Sign(const uint8_t* msg, size_t msgLen,
-                                uint8_t sig[NIUS_RSA2048_SIG]);
-CryptoStatus rsaPkcs1Sha256Verify(...);
-CryptoStatus rsa2048ExportPubKey(uint8_t mod[NIUS_RSA2048_MOD], uint16_t* modLen,
-                                 uint8_t* pubExp, uint16_t* pubExpLen);
-CryptoStatus rsaPkcs1Sha256VerifyPub(const uint8_t* mod, uint16_t modLen,
-                                     const uint8_t* pubExp, uint16_t pubExpLen,
-                                     const uint8_t* msg, size_t msgLen,
-                                     const uint8_t sig[NIUS_RSA2048_SIG]);
-```
-
-Prefer explicit `RsaKeyPair` for multi-key sketches and predictable slot usage.
-
 **Limitations:**
 
 | Topic | Detail |
@@ -927,10 +908,10 @@ slot — use `rsaRelease()` for that).
 
 ---
 
-## 17. Deprecated and alias APIs
+## 17. Friendly aliases
 
-| Preferred | Alias / deprecated |
-|-----------|-------------------|
+| Preferred | Alias |
+|-----------|-------|
 | `rsaGenerateKeyPair` | `rsaGenerate` |
 | `rsaSignWithKeyPair` | `rsaSign` |
 | `rsaVerifyWithKeyPair` | `rsaVerify` |
@@ -939,12 +920,17 @@ slot — use `rsaRelease()` for that).
 | `rsaReleaseKeyPair` | `rsaRelease` |
 | `chachaPolySeal` / `Open` | `chacha20Poly1305Seal` / `Open` |
 | `chachaPolyEncrypt` / `Decrypt` | `chacha20Poly1305Encrypt` / `Decrypt` |
-| Explicit `RsaKeyPair` | `rsa2048GenerateKey`, `rsaPkcs1Sha256Sign`, … |
 
 Message-level helpers remain available alongside packet structs:
 
 - `ecdsaSignMessage` / `ecdsaVerifyMessage`
 - `ed25519SignFromSeed`
+
+### Removed in v0.7.0
+
+Implicit RSA slot-0 APIs (`rsa2048GenerateKey`, `rsaPkcs1Sha256Sign`,
+`rsaPkcs1Sha256Verify`, `rsa2048ExportPubKey`, `rsaPkcs1Sha256VerifyPub`) were
+removed. Use explicit `RsaKeyPair` handles (`rsaGenerate`, `rsaSign`, …).
 
 ---
 
@@ -1088,4 +1074,4 @@ See [ONCHIP_BUILD.md](ONCHIP_BUILD.md) and `library.properties.onchip`.
 
 ---
 
-*Document version: v0.6.0 — matches `library.properties` version.*
+*Document version: v0.7.0 — matches `library.properties` version.*

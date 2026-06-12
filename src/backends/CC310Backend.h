@@ -5,8 +5,8 @@
   Nordic's CRYS runtime (libnrf_cc310.a from the nRF5 SDK). That binary is NOT
   bundled; run vendor/tools/setup_vendored.py — see docs/VENDORING.md.
 
-  Auto-detection: the .cpp compiles in real-hardware mode only when the
-  vendored headers are present (checked with __has_include). Until then it
+  Auto-detection: the .cpp compiles in real-hardware mode only when vendored
+  CRYS headers and precompiled archives are both present. Until then it
   compiles as a stub whose begin() returns false, so CryptoEngine's Prefer::Auto
   simply falls back to the on-chip backend and the whole library still builds.
 
@@ -120,18 +120,6 @@ class CC310Backend : public CryptoBackend {
   CryptoStatus rsaPssVerifyWithPublicKey(
       const RsaPublicKey* pub, const uint8_t* msg, size_t msgLen,
       const uint8_t sig[kRsa2048SigLen]) override;
-
-  CryptoStatus rsa2048GenerateKey() override;
-  CryptoStatus rsaPkcs1Sha256Sign(const uint8_t* msg, size_t msgLen,
-                                  uint8_t sig[kRsa2048SigLen]) override;
-  CryptoStatus rsaPkcs1Sha256Verify(const uint8_t* msg, size_t msgLen,
-                                    const uint8_t sig[kRsa2048SigLen]) override;
-  CryptoStatus rsa2048ExportPubKey(uint8_t mod[kRsa2048ModLen], uint16_t* modLen,
-                                   uint8_t* pubExp, uint16_t* pubExpLen) override;
-  CryptoStatus rsaPkcs1Sha256VerifyPub(const uint8_t* mod, uint16_t modLen,
-                                       const uint8_t* pubExp, uint16_t pubExpLen,
-                                       const uint8_t* msg, size_t msgLen,
-                                       const uint8_t sig[kRsa2048SigLen]) override;
 
   CryptoStatus ed25519GenerateKey(uint8_t secret[kEd25519SecLen],
                                   uint8_t pub[kEd25519PubLen]) override;

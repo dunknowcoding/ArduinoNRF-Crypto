@@ -9,16 +9,16 @@ the correct link address.
 
 ## Verified (board1, CC310 backend)
 
-### v0.6.0 (latest)
+### v0.7.0 (latest)
 
 | Test | Result | Notes |
 |------|--------|-------|
-| `examples/CryptoSelfTest` | **23/23 PASS** | incl. `supports()`, streaming hash, `runSelfTest()`, RSA import/PSS, OnChip fallbacks |
+| `examples/CryptoSelfTest` | **23/23 PASS** | CC310 Auto; explicit `RsaKeyPair` RSA tests |
+| OnChip (`NIUS_FORCE_ONCHIP_SELFTEST`) | **9/9 PASS, 14 SKIP** | see below |
 | `examples/BleCryptoStress` | **RESULT: OK** | NimBLE + 3000× SHA-256/HMAC |
 | `SdCryptoSmoke` | **RESULT: OK** | MBR-only @ `0x1000` |
-| `CC310Smoke` (shim) | **RESULT: OK** | incl. SHA-512 KAT |
 
-Expected `CryptoSelfTest` tail:
+Expected CC310 `CryptoSelfTest` tail:
 
 ```
 summary: 23 passed, 0 failed, 0 skipped
@@ -58,9 +58,10 @@ arduino-cli --config-file $Cli upload --fqbn $Fqbn --input-dir $Build
 # Open COM18 @ 115200 — expect RESULT: OK within ~15 s
 ```
 
-**Note:** A second J-Link reset immediately after upload (as in `capture_serial.py`)
-can delay USB CDC re-enumeration long enough to miss the boot log; wait a few
-seconds or read serial without resetting again.
+**Note:** A second J-Link reset immediately after upload (default in older
+`capture_serial.py`) can delay USB CDC re-enumeration. Prefer
+`tools/hwverify/capture_serial.py --no-jlink-reset` after `arduino-cli upload`,
+or copy the script from `tools/hwverify/` into your local `vendor/hwverify/`.
 
 ### Earlier releases
 

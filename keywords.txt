@@ -55,9 +55,8 @@ ecdsaVerify	KEYWORD2
 ecdhShared	KEYWORD2
 x25519GenerateKey	KEYWORD2
 x25519Shared	KEYWORD2
-rsa2048GenerateKey	KEYWORD2
-rsaPkcs1Sha256Sign	KEYWORD2
-aesGcmSeal	KEYWORD2
+rsaGenerate	KEYWORD2
+rsaSign	KEYWORD2
 aesGcmOpen	KEYWORD2
 aesCbcSeal	KEYWORD2
 aesCbcOpen	KEYWORD2

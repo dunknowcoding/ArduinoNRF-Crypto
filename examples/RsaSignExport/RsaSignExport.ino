@@ -1,12 +1,7 @@
 /*
   RsaSignExport - RSA-2048 with explicit RsaKeyPair handle (CC310).
 
-  Uses the v0.5 API:
-    Crypto.rsaGenerate(&key);
-    Crypto.rsaSign(&key, msg, len, sig);
-    Crypto.rsaVerifyWithPubKey(&key.pub, msg, len, sig);
-
-  Legacy rsa2048GenerateKey() still works but stores keys implicitly.
+  Uses the explicit RsaKeyPair handle API (v0.5+).
   Open Serial Monitor at 115200 baud (~5 s for keygen).
 */
 #include <NiusCrypto.h>

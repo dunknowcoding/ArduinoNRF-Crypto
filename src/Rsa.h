@@ -9,10 +9,6 @@
       Crypto.rsaVerifyWithPubKey(&key.pub, msg, msgLen, sig256);
       Crypto.rsaRelease(&key);   // free the backend slot when finished
 
-  Legacy implicit key (slot 0, still supported):
-      Crypto.rsa2048GenerateKey();
-      Crypto.rsaPkcs1Sha256Sign(msg, msgLen, sig256);
-
   CC310 only. Same library as <NiusCrypto.h>.
 */
 #ifndef NIUSCRYPTO_PUBLIC_RSA_H
