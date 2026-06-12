@@ -14,7 +14,7 @@ compile-only until HW is available.
 | **Vendoring** | `setup_vendored.py`, soft-float CRYS + Oberon |
 | **Examples** | 10 sketches incl. `CryptoSelfTest`, `HkdfSha256`, `SdCryptoSmoke` |
 | **CI** | GitHub Actions compile matrix (ProMicro + XIAO compile-only) + `arduino-lint` |
-| **Bring-up** | `vendor/hwverify/verify_board1.ps1`, `docs/BOARD_BRINGUP.md`, `docs/VALIDATION.md` |
+| **Bring-up** | `extras/hwverify/verify_board1.ps1`, `docs/BOARD_BRINGUP.md`, `docs/VALIDATION.md` |
 | **Library Manager** | Indexed as **NiusCrypto** ([registry PR #8517](https://github.com/arduino/library-registry/pull/8517)) |
 
 ## In progress / next

@@ -19,15 +19,8 @@ vendor/MANIFEST*.txt
 vendor/LICENSE-Nordic*.txt
 vendor/download/
 
-# Hardware bring-up under vendor/hwverify/: ignore build scratch, keep scripts.
-vendor/hwverify/_*/
-vendor/hwverify/**/*.elf
-vendor/hwverify/**/*.hex
-vendor/hwverify/**/*.uf2
-vendor/hwverify/**/*.map
-vendor/hwverify/**/compile_commands.json
-vendor/hwverify/**/*.cache
-vendor/hwverify/**/*.d
+# Local hardware bring-up scratch (build output + machine-specific arduino-cli.yaml).
+vendor/hwverify/
 
 # Local nRF5 SDK source tree (import scripts read from here; users download separately).
 vendor/nRF5SDK/

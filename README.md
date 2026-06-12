@@ -146,7 +146,7 @@ license forbids redistributing the CC310/Oberon archives, and local bring-up
 scratch is not part of the library.
 
 **Do commit:** `src/` (except the git-ignored vendored folders below), `examples/`,
-`docs/`, `vendor/tools/*.py`, `library.properties`, `keywords.txt`, `LICENSE`.
+`extras/`, `docs/`, `vendor/tools/*.py`, `library.properties`, `keywords.txt`, `LICENSE`.
 
 **Do not commit** (already listed in `.gitignore`; each developer generates these
 locally):
@@ -157,10 +157,11 @@ locally):
 | `src/cc310/` | CRYS + Oberon headers copied by the import/fetch scripts |
 | `vendor/nRF5SDK/` | Your local nRF5 SDK tree (only needed as the CRYS import source) |
 | `vendor/MANIFEST*.txt`, `vendor/LICENSE-Nordic*.txt` | Generated manifests and license copies |
-| `vendor/hwverify/_*/` | J-Link helper scripts + `verify_board1.ps1` live here; `_verify_board1/` etc. are local build output |
+| `vendor/hwverify/` | Local J-Link build output + `arduino-cli.yaml` (machine-specific) |
+| `extras/hwverify/` | Committed board1 verify scripts (ignored by arduino-lint / IDE compile) |
 | `build/`, `_build/`, `*.elf`, `*.hex`, `*.uf2`, `*.map` | Arduino / arduino-cli build artifacts anywhere in the tree |
 
-After cloning, run the two vendoring steps in [Enabling the CC310 backend](#enabling-the-cc310-backend) once on your machine. Board1 hardware verification scripts live in `vendor/hwverify/` (see [docs/VALIDATION.md](docs/VALIDATION.md)); build artifacts under `vendor/hwverify/_*/` stay local.
+After cloning, run the two vendoring steps in [Enabling the CC310 backend](#enabling-the-cc310-backend) once on your machine. Board1 scripts are in `extras/hwverify/`; copy `arduino-cli.yaml.example` to `vendor/hwverify/arduino-cli.yaml` for local bring-up (see [docs/VALIDATION.md](docs/VALIDATION.md)).
 
 ## API
 

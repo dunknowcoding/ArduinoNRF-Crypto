@@ -29,7 +29,7 @@ CC310 hardware tests require vendored blobs on the build machine (`setup_vendore
 When a second board is available, run:
 
 ```powershell
-powershell -File vendor\hwverify\verify_board1.ps1 -Fqbn 'arduinonrf:nrf52:xiao_nrf52840:uploadmode=jlink'
+powershell -File extras\hwverify\verify_board1.ps1 -Fqbn 'arduinonrf:nrf52:xiao_nrf52840:uploadmode=jlink'
 ```
 
 (adjust `-ComPort` for that board's data CDC).

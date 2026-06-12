@@ -7,18 +7,16 @@
 # 0x26000 S140 layout here — J-Link loadfile will place the hex at the wrong
 # address and the board will stop enumerating USB serial.
 param(
-    [string]$RepoRoot = (Split-Path $PSScriptRoot -Parent),
+    [string]$RepoRoot = (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent),
     [string]$CoreRoot = (Join-Path (Split-Path $RepoRoot -Parent) 'ArduinoNRF'),
     [string]$Fqbn = 'arduinonrf:nrf52:promicro_nrf52840:uploadmode=jlink,bootloader=autonosd,usbcdc=enabled',
     [string]$ComPort = $(if ($env:NIUS_BOARD1_COM) { $env:NIUS_BOARD1_COM } else { 'COM11' }),
-    [string]$BuildRoot = (Join-Path $PSScriptRoot '_verify_board1')
+    [string]$BuildRoot = (Join-Path $RepoRoot 'vendor\hwverify\_verify_board1')
 )
 
 $ErrorActionPreference = 'Stop'
-$cliCfg = Join-Path $PSScriptRoot 'arduino-cli.yaml'
-if (-not (Test-Path $cliCfg)) {
-    $cliCfg = $null
-}
+$localCli = Join-Path $RepoRoot 'vendor\hwverify\arduino-cli.yaml'
+$cliCfg = if (Test-Path $localCli) { $localCli } else { $null }
 
 function Invoke-ArduinoCli {
     param([string[]]$CliArgs)

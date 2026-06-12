@@ -48,20 +48,24 @@ should print `RESULT: OK`.
 
 ### One-shot (board1, J-Link)
 
-Scripts and J-Link helpers live in `vendor/hwverify/`:
+Scripts and J-Link helpers live in `extras/hwverify/` (Arduino `extras/` — ignored by
+arduino-lint and the IDE compiler):
 
 | File | Purpose |
 |------|---------|
 | `verify_board1.ps1` | Compile + J-Link flash + serial capture (full regression) |
 | `capture_serial.py` | J-Link reset + read until `RESULT: OK` |
 | `capture_selftest.py` | Same, fixed for `CryptoSelfTest` only |
-| `arduino-cli.yaml` | Local core path for bring-up |
+| `arduino-cli.yaml.example` | Template; copy to `vendor/hwverify/arduino-cli.yaml` locally |
 | `justreset.jlink`, `flashbl.jlink`, … | J-Link commander snippets |
 
 Build output goes to `vendor/hwverify/_verify_board1/` (git-ignored).
 
 ```powershell
-powershell -File vendor\hwverify\verify_board1.ps1
+# Optional one-time local config (machine paths):
+Copy-Item extras\hwverify\arduino-cli.yaml.example vendor\hwverify\arduino-cli.yaml
+# Edit vendor\hwverify\arduino-cli.yaml, then:
+powershell -File extras\hwverify\verify_board1.ps1
 ```
 
 Set `NIUS_BOARD1_COM` if the data port is not COM11 (e.g. `COM18` after re-enumeration).

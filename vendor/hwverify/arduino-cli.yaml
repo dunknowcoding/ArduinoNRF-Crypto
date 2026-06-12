@@ -1,4 +1,0 @@
-# Local bring-up: use the repo's hardware/ tree instead of Documents/Arduino.
-directories:
-  data: C:/Users/felix/AppData/Local/Arduino15
-  user: F:/Arduino/driver/ArduinoNRF
