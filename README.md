@@ -32,22 +32,22 @@ void setup() {
 |-----------|-----------------|-------------------|
 | `random`  | **CC310 TRNG (hardware)**        | RNG peripheral (hardware) |
 | `sha256`  | **CC310 SHA-256 (hardware)**     | software (`SoftSha256`)   |
-| `sha384`  | Oberon software (via `nrf_oberon`)² | *Unsupported*             |
-| `sha512`  | **CC310 SHA-512 (hardware)**     | *Unsupported*             |
+| `sha384`  | Oberon software (via `nrf_oberon`)² | software (`SoftSha512`) |
+| `sha512`  | **CC310 SHA-512 (hardware)**     | software (`SoftSha512`)   |
 | `hmacSha256` | **CC310 HMAC-SHA-256 (CRYS hardware)** | software (`SoftSha256`) |
-| `hkdfSha256` | **CC310 HKDF-SHA-256 (CRYS hardware)** | *Unsupported*         |
-| `aesCbcEncrypt` | **CC310 AES-CBC (hardware)** | ECB peripheral (hardware) |
-| `aesCbcDecrypt` | **CC310 AES-CBC (hardware)** | *Unsupported*¹            |
+| `hkdfSha256` | **CC310 HKDF-SHA-256 (CRYS hardware)** | software (`SoftHkdf`) |
+| `aesCbcEncrypt` | **CC310 AES-CBC (hardware)** | ECB peripheral (encrypt path) |
+| `aesCbcDecrypt` | **CC310 AES-CBC (hardware)** | ECB peripheral + software inverse |
 | `aesCtr`  | **CC310 AES-CTR (hardware)**     | ECB peripheral (hardware) |
-| `aesGcm*` | `nrf_oberon` (software²)         | *Unsupported*             |
-| `chachaPoly*` | `nrf_oberon` (software²)     | *Unsupported*             |
+| `aesGcm*` | `nrf_oberon` (software²)         | software (`SoftAesGcm`)   |
+| `chachaPoly*` | `nrf_oberon` (software²)     | software (`SoftChaChaPoly`) |
 | `ecdsa*` / `ecdh*` | **CC310 ECC P-256 (hardware)** | *Unsupported*        |
 | `x25519*` | **CC310 Curve25519 (hardware)** | *Unsupported*             |
 | `ed25519*` | **CC310 Ed25519 (hardware)** | *Unsupported*             |
 | `rsa*` | **CC310 RSA-2048 PKCS#1 SHA-256 (hardware)** | *Unsupported*      |
 
-¹ The nRF52840 ECB peripheral only *encrypts*; CBC decryption needs the AES
-inverse, so use CTR on the fallback or enable the CC310 backend.
+¹ OnChip CBC decrypt uses the ECB peripheral plus a software AES inverse
+(`SoftAes128`); prefer CTR or AEAD on the fallback when possible.
 ² The classic CryptoCell runtime (CRYS) does not expose AES-GCM or
 ChaCha20-Poly1305, so those AEAD primitives run in Nordic's compact
 `nrf_oberon` software library instead of on the accelerator. Everything else
@@ -81,8 +81,11 @@ PASS  HKDF-SHA-256 (RFC 5869 #1)            PASS  AES-128-GCM encrypt + decrypt+
 PASS  HMAC-SHA-256 (RFC 4231 #2)            PASS  ChaCha20-Poly1305 (RFC 8439 A.5)
 PASS  AES-128-CBC/CTR/GCM                    PASS  X25519 + RSA + Ed25519
 PASS  ECDSA/Ed25519 packet API (EcdsaMessage / Ed25519Message)
-summary: 23 passed, 0 failed, 0 skipped     RESULT: OK
+summary: 23 passed, 0 failed, 0 skipped     RESULT: OK   (CC310 backend)
 ```
+
+OnChip fallback (`CryptoSelfTest` + `-DNIUS_FORCE_ONCHIP_SELFTEST`): **13 passed,
+10 skipped** (ECC/RSA unsupported on OnChip), **RESULT: OK**.
 
 ## Installing the library
 
@@ -185,8 +188,10 @@ Quick summary:
   raw Ed25519 secret bytes, separate AES parameters, …).
 - **`Crypto.supports(CryptoCapability::...)`** probes what the active backend can do.
 - **`Crypto.runSelfTest()`** runs built-in KAT tests (same as `CryptoSelfTest` sketch).
-- ECC, RSA, GCM, ChaCha require **CC310**; OnChip adds SHA-256/384/512, HMAC, HKDF,
-  AES-CBC encrypt+decrypt, and AES-CTR (see [ONCHIP_BUILD.md](docs/ONCHIP_BUILD.md)).
+- **CC310** backend: full API including ECC, RSA, GCM, ChaPoly (23/23 self-test pass).
+- **OnChip** fallback: SHA/HMAC/HKDF, AES-CBC/CTR/GCM, ChaCha20-Poly1305, RNG;
+  ECC/RSA return `Unsupported` (13/13 pass, 10 skip on self-test). See
+  [ONCHIP_BUILD.md](docs/ONCHIP_BUILD.md).
 
 See the [backend capability table](#backends) above and
 [API_REFERENCE.md §4–5](docs/API_REFERENCE.md#4-backend-capability-matrix) for

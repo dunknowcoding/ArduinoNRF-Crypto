@@ -10,8 +10,8 @@
   Crypto.begin(CryptoEngine::Prefer::OnChip) for OnChip-only validation.
 
   On a board with CC310 vendored every line should read PASS. On the bare
-  on-chip fallback, GCM / ChaCha20-Poly1305 / P-256 / X25519 / Ed25519 / RSA /
-  ECDH read SKIP (Unsupported) - that is expected, not a failure.
+  on-chip fallback, ECC/RSA and related tests read SKIP (Unsupported) — that is
+  expected, not a failure. GCM and ChaCha20-Poly1305 run in software on OnChip.
 
   Open the Serial Monitor at 115200 baud.
 */

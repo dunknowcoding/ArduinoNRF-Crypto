@@ -11,8 +11,8 @@ delegates to a swappable implementation.
         CryptoBackend (interface)      <- one surface, many implementations
          /          \
    CC310Backend   OnChipBackend
-   (CRYS runtime   (ECB peripheral +
-    + Oberon GCM)   RNG + SoftSha256)
+   (CRYS runtime   (ECB peripheral + SoftAes128/Gcm/ChaPoly +
+    + Oberon GCM)   SoftSha256/512, SoftHkdf, RNG)
 ```
 
 The `CC310Backend` drives the real Arm CryptoCell 310 through Nordic's CRYS
@@ -38,8 +38,10 @@ src/
     CryptoBackend.h       the abstract backend (all ops default to Unsupported)
     CryptoEngine.h/.cpp   facade: backend selection, arg checks, HMAC
   backends/
-    OnChipBackend.h/.cpp  ECB-peripheral AES + RNG + software SHA
+    OnChipBackend.h/.cpp  ECB AES + RNG + software SHA/HKDF + SoftAesGcm/ChaPoly
     SoftSha256.h/.cpp     incremental FIPS 180-4 SHA-256
+    SoftAesGcm.*          software AES-128-GCM (OnChip AEAD)
+    SoftChaChaPoly.*      software ChaCha20-Poly1305 (OnChip AEAD)
     CC310Backend.h/.cpp   CRYS runtime (RNG/SHA/AES/ECC) + Oberon GCM, __has_include-gated
   cc310/                  vendored Nordic headers (CRYS + Oberon, git-ignored)
   cortex-m4/              vendored Nordic .a archives (libnrf_cc310.a + liboberon.a, git-ignored)
@@ -82,9 +84,9 @@ active backend is just a pointer.
 ## Capability model
 
 Every operation on `CryptoBackend` has a default that returns
-`CryptoStatus::Unsupported`; a backend overrides only what it can do. So the
-on-chip fallback simply does not override GCM/ECDSA/ECDH and those calls report
-`Unsupported`, while `CryptoEngine` still type-checks arguments and guards the
+`CryptoStatus::Unsupported`; a backend overrides only what it can do. OnChip
+implements symmetric crypto, hash, and AEAD in software/peripherals; ECC/RSA
+remain CC310-only. `CryptoEngine` type-checks arguments and guards the
 not-started case uniformly.
 
 ## Conditional compilation

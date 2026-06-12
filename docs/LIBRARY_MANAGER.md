@@ -6,7 +6,7 @@ NiusCrypto is indexed in the [Arduino Library Registry](https://github.com/ardui
 ## How releases appear
 
 1. Bump `version` in `library.properties` (and `library.properties.onchip`).
-2. Commit, push, and tag (e.g. `v0.7.0`).
+2. Commit, push, and tag (e.g. `v0.7.1`).
 3. The registry bot picks up the new tag within ~24 h (no manual PR per release).
 
 Users install via **Sketch → Include Library → Manage Libraries…** or:

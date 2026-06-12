@@ -49,7 +49,9 @@ If neither `src/cc310/` nor `src/cortex-m4/` exist, the default
 | `hkdfSha256` | Software fallback |
 | `aesCbcEncrypt` / `aesCbcDecrypt` | ECB peripheral + software inverse |
 | `aesCtr` | ECB peripheral |
-| GCM, ChaCha, P-256, X25519, Ed25519, RSA | **Unsupported** — vendoring required |
+| `aesGcm*` | Software (`SoftAesGcm`, 96-bit IV) |
+| `chachaPoly*` | Software (`SoftChaChaPoly`, RFC 8439) |
+| P-256, X25519, Ed25519, RSA | **Unsupported** — vendoring required |
 
 Probe at runtime:
 
@@ -70,4 +72,4 @@ See [VENDORING.md](VENDORING.md) for import details.
 ## Hardware validation
 
 On board1, compile with `-DNIUS_FORCE_ONCHIP_SELFTEST` and expect
-**9 passed, 14 skipped, RESULT: OK**. See [VALIDATION.md](VALIDATION.md).
+**13 passed, 10 skipped, RESULT: OK**. See [VALIDATION.md](VALIDATION.md).

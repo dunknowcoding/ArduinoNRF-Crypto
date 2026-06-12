@@ -116,7 +116,7 @@ class CryptoEngine {
                       const uint8_t iv[kAesBlockLen],
                       const uint8_t* in, uint8_t* out, size_t len);
 
-  // ---- AES-128-GCM (CC310 only) ----
+  // ---- AES-128-GCM ----
   CryptoStatus aesGcmEncrypt(const uint8_t key[kAes128KeyLen],
                              const uint8_t iv[kGcmIvLen],
                              const uint8_t* aad, size_t aadLen,

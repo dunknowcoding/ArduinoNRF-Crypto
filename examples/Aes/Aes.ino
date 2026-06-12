@@ -6,8 +6,8 @@
   authenticates: tampering with the ciphertext makes decryption report
   AuthFailed.
 
-  CBC-decrypt and GCM need the CC310/Oberon backend; on the on-chip fallback
-  those steps print Unsupported (CTR still works there).
+  CBC-decrypt, GCM, and ChaPoly run on both backends (OnChip uses software AEAD
+  and ECB+inverse for CBC decrypt). ECC/RSA still need CC310.
 
   Open the Serial Monitor at 115200 baud.
 */

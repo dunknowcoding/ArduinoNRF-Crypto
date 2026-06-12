@@ -1,9 +1,9 @@
 name=NiusCrypto
-version=0.7.0
+version=0.7.1
 author=NiusRobotLab
 maintainer=dunknowcoding
 sentence=OnChip-only build of NiusCrypto (no Nordic precompiled archives).
-paragraph=Copy this file over library.properties when you do not vendored libnrf_cc310.a / liboberon.a. Provides SHA-256/384/512 (software), HMAC, HKDF, AES-CBC encrypt+decrypt, AES-CTR, and RNG. ECC/RSA/GCM/ChaCha require the full CC310 build — run vendor/tools/setup_vendored.py and use the default library.properties instead.
+paragraph=Copy this file over library.properties when you do not vendored libnrf_cc310.a / liboberon.a. Provides SHA-256/384/512, HMAC, HKDF, AES-CBC/CTR, AES-GCM, ChaCha20-Poly1305 (software), and RNG. ECC/RSA require the full CC310 build — run vendor/tools/setup_vendored.py and use the default library.properties instead.
 category=Other
 url=https://github.com/dunknowcoding/ArduinoNRF-Crypto
 architectures=nrf52

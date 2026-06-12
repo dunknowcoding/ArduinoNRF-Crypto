@@ -1,6 +1,6 @@
 # NiusCrypto API Reference
 
-Complete reference for the public API shipped in **v0.7.0**. All symbols live
+Complete reference for the public API shipped in **v0.7.1**. All symbols live
 in the global `Crypto` object (`ncrypto::CryptoEngine`) unless noted.
 
 **Primary header:** `#include <NiusCrypto.h>`
@@ -218,8 +218,8 @@ Crypto.begin(CryptoEngine::Prefer::OnChip);        // software / peripheral only
 | `aesCbcDecrypt` | CC310 AES-CBC (hardware) | ECB peripheral + software inverse |
 | `aesCtr` | CC310 AES-CTR (hardware) | ECB peripheral |
 | `sha256Stream` / `sha384Stream` / `sha512Stream` | Software streaming contexts | Software streaming contexts |
-| `aesGcm*` | Oberon software | **Unsupported** |
-| `chachaPoly*` | Oberon software | **Unsupported** |
+| `aesGcm*` | Oberon software | Software (`SoftAesGcm`) |
+| `chachaPoly*` | Oberon software | Software (`SoftChaChaPoly`) |
 | `ecdsa*` / `ecdh*` | CC310 ECC P-256 (hardware) | **Unsupported** |
 | `x25519*` | CC310 Curve25519 (hardware) | **Unsupported** |
 | `ed25519*` | CC310 Ed25519 (hardware) | **Unsupported** |
@@ -554,7 +554,7 @@ gcm.reset();
 | Topic | Detail |
 |-------|--------|
 | GCM on CC310 | Oberon software, not CRYS hardware |
-| GCM on OnChip | **Unsupported** — vendoring required |
+| GCM on OnChip | Supported (v0.7.1+) via `SoftAesGcm` (96-bit IV) |
 | CBC decrypt on OnChip | Supported (v0.6+) via ECB peripheral + software inverse |
 | Empty plaintext | Allowed (`len == 0`); `in`/`out` may be null |
 | In-place | Caller must ensure `out` does not overlap `in` unless backend allows it; use separate buffers to be safe |
@@ -596,7 +596,7 @@ chacha20Poly1305Seal(ChaChaPolyMessage&)
 chacha20Poly1305Open(ChaChaPolyMessage&)
 ```
 
-**Limitations:** CC310/Oberon only. OnChip returns `Unsupported`. Nonce must be
+**Limitations:** CC310 uses Oberon; OnChip uses `SoftChaChaPoly` (RFC 8439). Nonce must be
 unique per key.
 
 ---
@@ -1074,4 +1074,4 @@ See [ONCHIP_BUILD.md](ONCHIP_BUILD.md) and `library.properties.onchip`.
 
 ---
 
-*Document version: v0.7.0 — matches `library.properties` version.*
+*Document version: v0.7.1 — matches `library.properties` version.*

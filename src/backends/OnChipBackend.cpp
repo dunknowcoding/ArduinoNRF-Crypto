@@ -7,6 +7,8 @@
 #include <NrfPeripherals.h>  // NrfRng (core)
 
 #include "SoftAes128.h"
+#include "SoftAesGcm.h"
+#include "SoftChaChaPoly.h"
 #include "SoftHkdf.h"
 #include "SoftSha256.h"
 #include "SoftSha512.h"
@@ -44,6 +46,8 @@ bool OnChipBackend::supportsCapability(CryptoCapability cap) const {
     case CryptoCapability::AesCbcEncrypt:
     case CryptoCapability::AesCbcDecrypt:
     case CryptoCapability::AesCtr:
+    case CryptoCapability::AesGcm:
+    case CryptoCapability::ChaChaPoly:
     case CryptoCapability::Sha256Stream:
     case CryptoCapability::Sha384Stream:
     case CryptoCapability::Sha512Stream:
@@ -133,6 +137,49 @@ CryptoStatus OnChipBackend::aes128Ctr(const uint8_t key[kAes128KeyLen],
     incrementCounter(ctr);
     off += n;
   }
+  return CryptoStatus::Ok;
+}
+
+CryptoStatus OnChipBackend::aes128GcmEncrypt(const uint8_t key[kAes128KeyLen],
+                                             const uint8_t iv[kGcmIvLen],
+                                             const uint8_t* aad, size_t aadLen,
+                                             const uint8_t* in, uint8_t* out,
+                                             size_t len, uint8_t tag[kGcmTagLen]) {
+  if (!started_) return CryptoStatus::NotStarted;
+  if (!SoftAesGcm::encrypt(key, iv, aad, aadLen, in, out, len, tag))
+    return CryptoStatus::BadParam;
+  return CryptoStatus::Ok;
+}
+
+CryptoStatus OnChipBackend::aes128GcmDecrypt(const uint8_t key[kAes128KeyLen],
+                                             const uint8_t iv[kGcmIvLen],
+                                             const uint8_t* aad, size_t aadLen,
+                                             const uint8_t* in, uint8_t* out,
+                                             size_t len,
+                                             const uint8_t tag[kGcmTagLen]) {
+  if (!started_) return CryptoStatus::NotStarted;
+  if (!SoftAesGcm::decrypt(key, iv, aad, aadLen, in, out, len, tag))
+    return CryptoStatus::AuthFailed;
+  return CryptoStatus::Ok;
+}
+
+CryptoStatus OnChipBackend::chachaPolyEncrypt(
+    const uint8_t key[kChaPolyKeyLen], const uint8_t nonce[kChaPolyNonceLen],
+    const uint8_t* aad, size_t aadLen, const uint8_t* in, uint8_t* out,
+    size_t len, uint8_t tag[kChaPolyTagLen]) {
+  if (!started_) return CryptoStatus::NotStarted;
+  if (!SoftChaChaPoly::encrypt(key, nonce, aad, aadLen, in, out, len, tag))
+    return CryptoStatus::BadParam;
+  return CryptoStatus::Ok;
+}
+
+CryptoStatus OnChipBackend::chachaPolyDecrypt(
+    const uint8_t key[kChaPolyKeyLen], const uint8_t nonce[kChaPolyNonceLen],
+    const uint8_t* aad, size_t aadLen, const uint8_t* in, uint8_t* out,
+    size_t len, const uint8_t tag[kChaPolyTagLen]) {
+  if (!started_) return CryptoStatus::NotStarted;
+  if (!SoftChaChaPoly::decrypt(key, nonce, aad, aadLen, in, out, len, tag))
+    return CryptoStatus::AuthFailed;
   return CryptoStatus::Ok;
 }
 

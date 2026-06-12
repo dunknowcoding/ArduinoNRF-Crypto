@@ -9,14 +9,18 @@ the correct link address.
 
 ## Verified (board1, CC310 backend)
 
-### v0.7.0 (latest)
+### v0.7.1 (latest)
 
 | Test | Result | Notes |
 |------|--------|-------|
 | `examples/CryptoSelfTest` | **23/23 PASS** | CC310 Auto; explicit `RsaKeyPair` RSA tests |
-| OnChip (`NIUS_FORCE_ONCHIP_SELFTEST`) | **9/9 PASS, 14 SKIP** | see below |
+| OnChip (`NIUS_FORCE_ONCHIP_SELFTEST`) | **13/13 PASS, 10 SKIP** | GCM + ChaPoly software (OnChip AEAD) |
 | `examples/BleCryptoStress` | **RESULT: OK** | NimBLE + 3000× SHA-256/HMAC |
 | `SdCryptoSmoke` | **RESULT: OK** | MBR-only @ `0x1000` |
+
+### v0.7.0
+
+Same CC310 **23/23 PASS**; OnChip was **9/9 PASS, 14 SKIP** (no software GCM/ChaPoly yet).
 
 Expected CC310 `CryptoSelfTest` tail:
 
@@ -32,13 +36,13 @@ Forces the software / peripheral fallback while CC310 blobs remain linked
 
 | Test | Result | Notes |
 |------|--------|-------|
-| `CryptoSelfTest` + `-DNIUS_FORCE_ONCHIP_SELFTEST` | **9/9 PASS, 14 SKIP** | SHA-256/384/512, HKDF, HMAC, AES-CBC/CTR, RNG; ECC/RSA/GCM/ChaPoly skipped |
+| `CryptoSelfTest` + `-DNIUS_FORCE_ONCHIP_SELFTEST` | **13/13 PASS, 10 SKIP** | SHA/HMAC/HKDF, AES-CBC/CTR/GCM, ChaPoly, RNG; ECC/RSA skipped |
 
 Expected tail:
 
 ```
 backend: OnChip   hardware-accelerated: no
-summary: 9 passed, 0 failed, 14 skipped
+summary: 13 passed, 0 failed, 10 skipped
 RESULT: OK
 ```
 
@@ -67,6 +71,8 @@ or copy the script from `tools/hwverify/` into your local `vendor/hwverify/`.
 
 | Version | CryptoSelfTest | Notes |
 |---------|----------------|-------|
+| v0.7.1 | 23/23 PASS (CC310); 13/13 OnChip | OnChip software GCM + ChaPoly |
+| v0.7.0 | 23/23 PASS (CC310); 9/9 OnChip | OnChip link fix, legacy RSA removal |
 | v0.5.2 | 23/23 PASS | `EcdsaMessage` / `Ed25519Message`, `reset()` |
 | v0.5.1 | 21/21 PASS | packet structs, `rsaRelease` |
 | v0.4.0 | 20/20 PASS | Ed25519, RSA export/VerifyPub |

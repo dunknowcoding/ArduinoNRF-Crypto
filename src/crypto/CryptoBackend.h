@@ -7,10 +7,9 @@
 
     * CC310Backend  - the real Arm CryptoCell 310 hardware (needs the vendored
                       nrf_cc310 binary). Does everything below in hardware.
-    * OnChipBackend - the nRF52840's on-chip ECB AES peripheral (via the core's
-                      NrfCrypto.h) and the RNG peripheral, plus a software
-                      SHA-256. AES + hash + random only; ECC / GCM report
-                      Unsupported.
+    * OnChipBackend - nRF52840 RNG + ECB AES (via core NrfCrypto), software
+                      SHA/HMAC/HKDF, SoftAesGcm, SoftChaChaPoly. ECC/RSA
+                      return Unsupported.
 
   CryptoEngine picks the best available backend at begin() and forwards to it,
   so a sketch never names a backend directly.
