@@ -12,7 +12,7 @@
 
   When active it provides the full CC310 feature set used by this library:
   hardware TRNG, SHA-256/384/512, HKDF-SHA-256, AES-128 (CBC / CTR / GCM),
-  ChaCha20-Poly1305, and ECDSA / ECDH on NIST P-256.
+  ChaCha20-Poly1305, X25519, RSA-2048, and ECDSA / ECDH on NIST P-256.
 */
 #ifndef NIUSCRYPTO_CC310BACKEND_H
 #define NIUSCRYPTO_CC310BACKEND_H
@@ -88,6 +88,18 @@ class CC310Backend : public CryptoBackend {
   CryptoStatus ecdhP256Shared(const uint8_t priv[kP256PrivLen],
                               const uint8_t peerPub[kP256PubLen],
                               uint8_t shared[kP256SharedLen]) override;
+
+  CryptoStatus x25519GenerateKey(uint8_t priv[kX25519KeyLen],
+                                 uint8_t pub[kX25519KeyLen]) override;
+  CryptoStatus x25519Shared(const uint8_t priv[kX25519KeyLen],
+                            const uint8_t peerPub[kX25519KeyLen],
+                            uint8_t shared[kX25519KeyLen]) override;
+
+  CryptoStatus rsa2048GenerateKey() override;
+  CryptoStatus rsaPkcs1Sha256Sign(const uint8_t* msg, size_t msgLen,
+                                  uint8_t sig[kRsa2048SigLen]) override;
+  CryptoStatus rsaPkcs1Sha256Verify(const uint8_t* msg, size_t msgLen,
+                                    const uint8_t sig[kRsa2048SigLen]) override;
 
  private:
   bool started_ = false;

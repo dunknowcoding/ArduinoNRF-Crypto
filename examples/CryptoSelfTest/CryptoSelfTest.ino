@@ -7,7 +7,7 @@
   per item and a final summary.
 
   On a board with CC310 vendored every line should read PASS. On the bare
-  on-chip fallback, GCM / ChaCha20-Poly1305 / ECDSA / ECDH read SKIP
+  on-chip fallback, GCM / ChaCha20-Poly1305 / P-256 / X25519 / RSA / ECDH read SKIP
   (Unsupported) - that is expected, not a failure.
 
   Open the Serial Monitor at 115200 baud.
@@ -304,6 +304,45 @@ void runTests() {
         skip("ECDH P-256 shared-secret agreement", r1);
     } else {
       skip("ECDH P-256 shared-secret agreement", s1);
+    }
+  }
+
+  // X25519: two parties derive the same shared secret
+  {
+    uint8_t aPriv[32], aPub[32], bPriv[32], bPub[32], sAB[32], sBA[32];
+    CryptoStatus s1 = Crypto.x25519GenerateKey(aPriv, aPub);
+    CryptoStatus s2 = Crypto.x25519GenerateKey(bPriv, bPub);
+    if (s1 == CryptoStatus::Ok && s2 == CryptoStatus::Ok) {
+      CryptoStatus r1 = Crypto.x25519Shared(aPriv, bPub, sAB);
+      CryptoStatus r2 = Crypto.x25519Shared(bPriv, aPub, sBA);
+      if (r1 == CryptoStatus::Ok && r2 == CryptoStatus::Ok)
+        report("X25519 shared-secret agreement", equal(sAB, sBA, 32));
+      else
+        skip("X25519 shared-secret agreement", r1);
+    } else {
+      skip("X25519 shared-secret agreement", s1);
+    }
+  }
+
+  // RSA-2048 PKCS#1 v1.5 + SHA-256 sign/verify round-trip
+  {
+    static const uint8_t kRsaMsg[] = {'r', 's', 'a', '-', 't', 'e', 's', 't'};
+    uint8_t sig[256];
+    CryptoStatus kg = Crypto.rsa2048GenerateKey();
+    if (kg == CryptoStatus::Ok) {
+      CryptoStatus ss = Crypto.rsaPkcs1Sha256Sign(kRsaMsg, sizeof(kRsaMsg), sig);
+      if (ss == CryptoStatus::Ok) {
+        bool good = (Crypto.rsaPkcs1Sha256Verify(kRsaMsg, sizeof(kRsaMsg), sig) ==
+                     CryptoStatus::Ok);
+        sig[0] ^= 0x01;
+        bool rejects = (Crypto.rsaPkcs1Sha256Verify(kRsaMsg, sizeof(kRsaMsg), sig) !=
+                        CryptoStatus::Ok);
+        report("RSA-2048 PKCS#1 SHA-256 sign/verify", good && rejects);
+      } else {
+        skip("RSA-2048 PKCS#1 SHA-256 sign/verify", ss);
+      }
+    } else {
+      skip("RSA-2048 PKCS#1 SHA-256 sign/verify", kg);
     }
   }
 

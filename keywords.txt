@@ -43,6 +43,11 @@ ecdsaGenerateKey	KEYWORD2
 ecdsaSign	KEYWORD2
 ecdsaVerify	KEYWORD2
 ecdhShared	KEYWORD2
+x25519GenerateKey	KEYWORD2
+x25519Shared	KEYWORD2
+rsa2048GenerateKey	KEYWORD2
+rsaPkcs1Sha256Sign	KEYWORD2
+rsaPkcs1Sha256Verify	KEYWORD2
 cryptoStatusName	KEYWORD2
 
 #######################################

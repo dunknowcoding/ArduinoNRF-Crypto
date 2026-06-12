@@ -37,8 +37,9 @@ Nordic's RTOS or SDH crypto glue. In practice:
 - Avoid calling `Crypto` from a **higher-priority ISR** than the SoftDevice
   event handler unless you add your own locking (not provided by this library).
 - BLE + crypto in one sketch is fine at the **application** level (e.g. hash
-  in `loop()` while NimBLE events run on the main stack) — but combining with
-  heavy concurrent radio traffic is not yet stress-tested.
+  in `loop()` while NimBLE events run on the main stack). See
+  `examples/BleCryptoStress` for a CC310 + NimBLE advertising stress sketch on
+  board1.
 
 ## If the app HardFaults before USB enumerates
 

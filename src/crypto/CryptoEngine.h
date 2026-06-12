@@ -118,6 +118,20 @@ class CryptoEngine {
                           const uint8_t peerPub[kP256PubLen],
                           uint8_t shared[kP256SharedLen]);
 
+  /** X25519 (Curve25519 ECDH). CC310 only; 32-byte keys, LE byte order. */
+  CryptoStatus x25519GenerateKey(uint8_t priv[kX25519KeyLen],
+                                 uint8_t pub[kX25519KeyLen]);
+  CryptoStatus x25519Shared(const uint8_t priv[kX25519KeyLen],
+                           const uint8_t peerPub[kX25519KeyLen],
+                           uint8_t shared[kX25519KeyLen]);
+
+  /** RSA-2048 PKCS#1 v1.5 + SHA-256. CC310 only; call rsa2048GenerateKey first. */
+  CryptoStatus rsa2048GenerateKey();
+  CryptoStatus rsaPkcs1Sha256Sign(const uint8_t* msg, size_t msgLen,
+                                  uint8_t sig[kRsa2048SigLen]);
+  CryptoStatus rsaPkcs1Sha256Verify(const uint8_t* msg, size_t msgLen,
+                                    const uint8_t sig[kRsa2048SigLen]);
+
   /** The active backend, or nullptr if not started (advanced use). */
   CryptoBackend* backend() const { return backend_; }
 

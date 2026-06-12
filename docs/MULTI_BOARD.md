@@ -19,18 +19,11 @@ arduino-cli compile \
 
 CC310 hardware tests require vendored blobs on the build machine (`setup_vendored.py`).
 
-### CI tiers
-
-| Workflow | Runner | What it proves |
-|----------|--------|----------------|
-| `compile.yml` | GitHub-hosted | All examples **compile** (on-chip fallback when blobs absent) + arduino-lint |
-| `compile-cc310-selfhosted.yml` | Self-hosted (`niuscrypto-cc310`) | **Full link** against `libnrf_cc310.a` + `liboberon.a` on both boards |
-
 ## Hardware validation status
 
 | Board | CryptoSelfTest | CC310Smoke | Notes |
 |-------|----------------|------------|-------|
-| ProMicro nRF52840 (board1) | **15/15 PASS** | **OK** | MBR-only clone @ `0x1000`, COM18 |
+| ProMicro nRF52840 (board1) | **17/17 PASS** | **BleCryptoStress OK** | MBR-only @ `0x1000`, COM18 |
 | Seeed XIAO nRF52840 | compile-only | compile-only | Awaiting HW in lab |
 
 When a second board is available, run the local verify script with an adjusted FQBN:

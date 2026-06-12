@@ -224,6 +224,42 @@ CryptoStatus CryptoEngine::ecdhShared(const uint8_t priv[kP256PrivLen],
   return backend_->ecdhP256Shared(priv, peerPub, shared);
 }
 
+CryptoStatus CryptoEngine::x25519GenerateKey(uint8_t priv[kX25519KeyLen],
+                                             uint8_t pub[kX25519KeyLen]) {
+  NC_GUARD();
+  if (!priv || !pub) return CryptoStatus::BadParam;
+  return backend_->x25519GenerateKey(priv, pub);
+}
+
+CryptoStatus CryptoEngine::x25519Shared(const uint8_t priv[kX25519KeyLen],
+                                        const uint8_t peerPub[kX25519KeyLen],
+                                        uint8_t shared[kX25519KeyLen]) {
+  NC_GUARD();
+  if (!priv || !peerPub || !shared) return CryptoStatus::BadParam;
+  return backend_->x25519Shared(priv, peerPub, shared);
+}
+
+CryptoStatus CryptoEngine::rsa2048GenerateKey() {
+  NC_GUARD();
+  return backend_->rsa2048GenerateKey();
+}
+
+CryptoStatus CryptoEngine::rsaPkcs1Sha256Sign(const uint8_t* msg, size_t msgLen,
+                                               uint8_t sig[kRsa2048SigLen]) {
+  NC_GUARD();
+  if (!sig) return CryptoStatus::BadParam;
+  if (msgLen != 0 && msg == nullptr) return CryptoStatus::BadParam;
+  return backend_->rsaPkcs1Sha256Sign(msg, msgLen, sig);
+}
+
+CryptoStatus CryptoEngine::rsaPkcs1Sha256Verify(const uint8_t* msg, size_t msgLen,
+                                                const uint8_t sig[kRsa2048SigLen]) {
+  NC_GUARD();
+  if (!sig) return CryptoStatus::BadParam;
+  if (msgLen != 0 && msg == nullptr) return CryptoStatus::BadParam;
+  return backend_->rsaPkcs1Sha256Verify(msg, msgLen, sig);
+}
+
 }  // namespace ncrypto
 
 ncrypto::CryptoEngine Crypto;

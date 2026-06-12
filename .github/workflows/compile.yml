@@ -74,9 +74,8 @@ jobs:
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
-      - name: CC310 full link runs on self-hosted runner
+      - name: CC310 hardware compile requires local Nordic blobs
         run: |
-          echo "Use workflow 'Compile CC310 (self-hosted)' (.github/workflows/compile-cc310-selfhosted.yml)."
-          echo "Register a runner with labels: self-hosted, niuscrypto-cc310"
-          echo "Set repository secret NRF5_SDK_PATH to your nRF5 SDK root."
+          echo "Full CC310 link tests: vendor/tools/setup_vendored.py on your machine."
+          echo "Hardware verify: vendor/hwverify/verify_board1.ps1 (local, git-ignored)."
           echo "See docs/MULTI_BOARD.md and docs/VENDORING.md."

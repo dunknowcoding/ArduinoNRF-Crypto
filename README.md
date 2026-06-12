@@ -39,6 +39,8 @@ void setup() {
 | `aesGcm*` | `nrf_oberon` (software²)         | *Unsupported*             |
 | `chachaPoly*` | `nrf_oberon` (software²)     | *Unsupported*             |
 | `ecdsa*` / `ecdh*` | **CC310 ECC P-256 (hardware)** | *Unsupported*        |
+| `x25519*` | **CC310 Curve25519 (hardware)** | *Unsupported*             |
+| `rsa*` | **CC310 RSA-2048 PKCS#1 SHA-256 (hardware)** | *Unsupported*      |
 
 ¹ The nRF52840 ECB peripheral only *encrypts*; CBC decryption needs the AES
 inverse, so use CTR on the fallback or enable the CC310 backend.
@@ -73,8 +75,8 @@ PASS  SHA-384("abc")                        PASS  ECDH P-256 shared-secret
 PASS  SHA-512("abc")                        PASS  random() (TRNG, fresh each run)
 PASS  HKDF-SHA-256 (RFC 5869 #1)            PASS  AES-128-GCM encrypt + decrypt+auth
 PASS  HMAC-SHA-256 (RFC 4231 #2)            PASS  ChaCha20-Poly1305 (RFC 8439 A.5)
-PASS  AES-128-CBC encrypt + decrypt (NIST)  PASS  AES-128-CTR (NIST F.5.1)
-summary: 15 passed, 0 failed, 0 skipped     RESULT: OK
+PASS  AES-128-CBC/CTR/GCM                    PASS  X25519 + RSA-2048 sign/verify
+summary: 17 passed, 0 failed, 0 skipped     RESULT: OK
 ```
 
 ## Installing the library
@@ -211,6 +213,7 @@ Public keys are 64 bytes (`X‖Y`), signatures 64 bytes (`R‖S`), private scala
 | `HmacSha256` | RFC 4231 HMAC-SHA-256 known-answer demo |
 | `Aes` | CBC / CTR / GCM encrypt-decrypt round-trips |
 | `ChaChaPoly1305` | RFC 8439 AEAD encrypt/decrypt known-answer demo |
+| `BleCryptoStress` | NimBLE advertising + CC310 SHA/HMAC loop stress |
 | `HkdfSha256` | HKDF-SHA-256 key derivation (RFC 5869) |
 | `EcdsaSignVerify` | P-256 key gen, sign, verify, tamper-detect |
 | `EcdhKeyExchange` | P-256 shared-secret agreement between two parties |

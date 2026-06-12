@@ -179,6 +179,33 @@ class CryptoBackend {
                                             uint8_t pub[kP256PubLen]) {
     (void)priv; (void)pub; return CryptoStatus::Unsupported;
   }
+
+  // ---- X25519 (Curve25519 ECDH, CC310) ----
+
+  virtual CryptoStatus x25519GenerateKey(uint8_t priv[kX25519KeyLen],
+                                         uint8_t pub[kX25519KeyLen]) {
+    (void)priv; (void)pub; return CryptoStatus::Unsupported;
+  }
+  virtual CryptoStatus x25519Shared(const uint8_t priv[kX25519KeyLen],
+                                    const uint8_t peerPub[kX25519KeyLen],
+                                    uint8_t shared[kX25519KeyLen]) {
+    (void)priv; (void)peerPub; (void)shared; return CryptoStatus::Unsupported;
+  }
+
+  // ---- RSA-2048 PKCS#1 v1.5 + SHA-256 (CC310) ----
+  // rsa2048GenerateKey stores the pair inside the backend until the next call.
+
+  virtual CryptoStatus rsa2048GenerateKey() {
+    return CryptoStatus::Unsupported;
+  }
+  virtual CryptoStatus rsaPkcs1Sha256Sign(const uint8_t* msg, size_t msgLen,
+                                          uint8_t sig[kRsa2048SigLen]) {
+    (void)msg; (void)msgLen; (void)sig; return CryptoStatus::Unsupported;
+  }
+  virtual CryptoStatus rsaPkcs1Sha256Verify(const uint8_t* msg, size_t msgLen,
+                                            const uint8_t sig[kRsa2048SigLen]) {
+    (void)msg; (void)msgLen; (void)sig; return CryptoStatus::Unsupported;
+  }
 };
 
 }  // namespace ncrypto
